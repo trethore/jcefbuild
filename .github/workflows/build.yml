@@ -239,20 +239,63 @@ jobs:
         if: ${{ needs.create-release.outputs.should_release == 'true' && matrix.family != 'windows' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG_NAME: ${{ needs.create-release.outputs.release_tag_name }}
+          ARTIFACT_NAME: ${{ matrix.artifact }}
         run: |
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} "out/binary_distrib.tar.gz#${{ matrix.artifact }}"
+          set -euo pipefail
+          for attempt in {1..5}; do
+            if gh release upload "$RELEASE_TAG_NAME" "out/binary_distrib.tar.gz#$ARTIFACT_NAME" --repo "$GITHUB_REPOSITORY"; then
+              success=1
+              break
+            fi
+            echo "Upload attempt $attempt failed. Retrying in 15 seconds..."
+            sleep 15
+          done
+          if [ "${success:-0}" -ne 1 ]; then
+            echo "Failed to upload release asset after multiple attempts."
+            exit 1
+          fi
 
       - name: Publish distribution to release (Windows)
         if: ${{ needs.create-release.outputs.should_release == 'true' && matrix.family == 'windows' }}
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG_NAME: ${{ needs.create-release.outputs.release_tag_name }}
+          ARTIFACT_NAME: ${{ matrix.artifact }}
         run: |
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} "out/binary_distrib.tar.gz#${{ matrix.artifact }}"
+          $ErrorActionPreference = 'Stop'
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            try {
+              gh release upload $env:RELEASE_TAG_NAME "out/binary_distrib.tar.gz#$env:ARTIFACT_NAME" --repo $env:GITHUB_REPOSITORY
+              $success = $true
+              break
+            } catch {
+              if ($attempt -eq 5) { throw }
+              Write-Host "Upload attempt $attempt failed. Retrying in 15 seconds..."
+              Start-Sleep -Seconds 15
+            }
+          }
 
       - name: Publish javadoc
         if: ${{ needs.create-release.outputs.should_release == 'true' && matrix.publish_javadoc == true }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG_NAME: ${{ needs.create-release.outputs.release_tag_name }}
         run: |
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/javadoc.tar.gz
+          set -euo pipefail
+          for attempt in {1..5}; do
+            if gh release upload "$RELEASE_TAG_NAME" out/javadoc.tar.gz --repo "$GITHUB_REPOSITORY"; then
+              success=1
+              break
+            fi
+            echo "Javadoc upload attempt $attempt failed. Retrying in 15 seconds..."
+            sleep 15
+          done
+          if [ "${success:-0}" -ne 1 ]; then
+            echo "Failed to upload javadoc after multiple attempts."
+            exit 1
+          fi
