@@ -61,7 +61,7 @@ if [ -n "$CACHE_ROOT" ]; then
   PRIMARY_CACHE_TO=(--cache-to "type=local,dest=$PRIMARY_CACHE_TEMP,mode=max")
 fi
 
-docker buildx build --progress=plain --platform="$PLATFORM" \
+docker buildx build --no-cache --progress=plain --platform="$PLATFORM" \
   --build-arg TARGETARCH="$ARCH" \
   --build-arg BUILD_TYPE="$BUILD_TYPE" \
   --build-arg REPO="$REPO" \
