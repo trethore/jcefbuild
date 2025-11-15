@@ -175,21 +175,6 @@ jobs:
               fh.write(f"repo_safe={sanitize(os.environ['REPO_URL'])}\n")
               fh.write(f"ref_safe={sanitize(os.environ['TARGET_REF'])}\n")
               fh.write(f"target_safe={sanitize(os.environ['TARGET_ARCH'])}\n")
-      - name: Prepare dependency cache directories
-        shell: bash
-        run: |
-          mkdir -p jcef/third_party
-          mkdir -p jcef/tools/buildtools
-      - name: Cache JCEF dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            jcef/third_party
-            jcef/tools/buildtools
-          key: jcef-deps-${{ steps.cache-meta.outputs.repo_safe }}-${{ steps.cache-meta.outputs.ref_safe }}
-          restore-keys: |
-            jcef-deps-${{ steps.cache-meta.outputs.repo_safe }}-
-
       - name: Set up QEMU
         if: ${{ matrix.qemu == true }}
         uses: docker/setup-qemu-action@v3
@@ -199,15 +184,6 @@ jobs:
       - name: Set up Docker Buildx
         if: ${{ matrix.family == 'linux' }}
         uses: docker/setup-buildx-action@v3
-
-      - name: Restore Docker Buildx cache (Linux)
-        if: ${{ matrix.family == 'linux' }}
-        uses: actions/cache@v4
-        with:
-          path: .buildx-cache/linux-${{ steps.cache-meta.outputs.target_safe }}
-          key: buildx-linux-${{ steps.cache-meta.outputs.target_safe }}-${{ hashFiles('docker/DockerfileLinux', 'scripts/run_linux.sh', 'compile_linux.sh') }}
-          restore-keys: |
-            buildx-linux-${{ steps.cache-meta.outputs.target_safe }}-
 
       - name: Setup macOS environment
         if: ${{ matrix.family == 'macos' }}
