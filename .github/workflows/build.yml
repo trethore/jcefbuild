@@ -202,8 +202,6 @@ jobs:
         run: |
           chmod +x compile_linux.sh
           ./compile_linux.sh ${{ matrix.build_target }} Release ${{ inputs.repo }} ${{ inputs.ref }}
-        env:
-          BUILDX_CACHE_ROOT: ${{ github.workspace }}/.buildx-cache
 
       - name: Build (Windows)
         if: ${{ matrix.family == 'windows' }}
@@ -245,7 +243,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in {1..5}; do
-            if gh release upload "$RELEASE_TAG_NAME" "out/binary_distrib.tar.gz#$ARTIFACT_NAME" --repo "$GITHUB_REPOSITORY"; then
+            if gh release upload "$RELEASE_TAG_NAME" out/binary_distrib.tar.gz --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT_NAME" --clobber; then
               success=1
               break
             fi
@@ -269,7 +267,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           for ($attempt = 1; $attempt -le 5; $attempt++) {
             try {
-              gh release upload $env:RELEASE_TAG_NAME "out/binary_distrib.tar.gz#$env:ARTIFACT_NAME" --repo $env:GITHUB_REPOSITORY
+              gh release upload $env:RELEASE_TAG_NAME out/binary_distrib.tar.gz --repo $env:GITHUB_REPOSITORY --name $env:ARTIFACT_NAME --clobber
               $success = $true
               break
             } catch {
