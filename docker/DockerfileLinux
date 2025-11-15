@@ -1,4 +1,16 @@
-FROM tytoo/jcefdocker:linux-latest AS stage
+FROM debian:bullseye AS base
+
+# Required build tools and libraries (matches trethore/jcefdocker)
+ENV TOOLS openjdk-11-jdk python3 python-is-python3 cmake git gcc build-essential libgtk2.0-dev ninja-build rsync curl libgbm-dev libxkbcommon-dev libpango1.0-dev libcairo-dev
+ENV LIBS libnss3 libnspr4 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 libasound2 libatspi2.0-0 libxshmfence1 libc6-armhf-cross
+
+RUN apt-get -q update && \
+    apt-get -q install -y --no-install-recommends $TOOLS $LIBS
+
+# Enable linux/arm builds by providing required linker symlink
+RUN ln -s /usr/arm-linux-gnueabihf/lib/ld-linux-armhf.so.3 /usr/lib/ld-linux-armhf.so.3
+
+FROM base AS stage
 
 LABEL jcefbuild=true
 

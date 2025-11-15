@@ -19,7 +19,7 @@ if ("%4"=="") (set "REF=master") ^
 else (set "REF=%4")
 
 :: Execute build with windows Dockerfile
-docker build -t jcefbuild --file DockerfileWindows .
+docker build -t jcefbuild --file docker/DockerfileWindows .
 
 :: Execute run with windows Dockerfile
 if not exist "jcef" mkdir "jcef"
