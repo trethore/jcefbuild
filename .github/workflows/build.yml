@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
-      selected: ${{ steps.targets.outputs.selected }}
     steps:
       - id: targets
         run: |
@@ -75,10 +74,8 @@ jobs:
               sys.exit(1)
 
           matrix_payload = json.dumps({"include": selected_targets})
-          selected_ids = ",".join(entry["id"] for entry in selected_targets)
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
               fh.write(f"matrix={matrix_payload}\n")
-              fh.write(f"selected={selected_ids}\n")
           PY
         env:
           TARGETS_INPUT: ${{ inputs.targets }}
@@ -90,7 +87,6 @@ jobs:
     outputs:
       should_release: ${{ steps.publish.outputs.should_release }}
       release_tag_name: ${{ steps.release_info.outputs.release_tag_name }}
-      build_meta: ${{ steps.release_info.outputs.build_meta }}
     steps:
       - id: publish
         run: |
@@ -128,20 +124,12 @@ jobs:
           gh release upload ${{ env.release_tag_name }} release_gen/build_meta.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Announce build meta
-        if: steps.publish.outputs.should_release == 'true'
-        run: |
-          cd release_gen
-          chmod +x announce_build_meta.sh
-          ./announce_build_meta.sh ${{ github.repository }}
       - name: Capture release metadata
         id: release_info
         run: |
           echo "release_tag_name=${RELEASE_TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "build_meta=${BUILD_META}" >> "$GITHUB_OUTPUT"
         env:
           RELEASE_TAG_NAME: ${{ env.release_tag_name }}
-          BUILD_META: ${{ env.build_meta }}
 
   build:
     name: Build (${{ matrix.id }})
@@ -156,25 +144,6 @@ jobs:
       matrix: ${{ fromJSON(needs.determine-targets.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare cache keys
-        id: cache-meta
-        shell: python
-        env:
-          REPO_URL: ${{ inputs.repo }}
-          TARGET_REF: ${{ inputs.ref }}
-          TARGET_ARCH: ${{ matrix.build_target }}
-        run: |
-          import os
-          import re
-
-          def sanitize(value: str) -> str:
-              value = value.replace('/', '_')
-              return re.sub(r'[^A-Za-z0-9._-]', '-', value)
-
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
-              fh.write(f"repo_safe={sanitize(os.environ['REPO_URL'])}\n")
-              fh.write(f"ref_safe={sanitize(os.environ['TARGET_REF'])}\n")
-              fh.write(f"target_safe={sanitize(os.environ['TARGET_ARCH'])}\n")
       - name: Set up QEMU
         if: ${{ matrix.qemu == true }}
         uses: docker/setup-qemu-action@v3
