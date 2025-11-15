@@ -242,8 +242,12 @@ jobs:
           ARTIFACT_NAME: ${{ matrix.artifact }}
         run: |
           set -euo pipefail
+          asset_path="out/${ARTIFACT_NAME}"
+          cp out/binary_distrib.tar.gz "$asset_path"
+          cleanup() { rm -f "$asset_path"; }
+          trap cleanup EXIT
           for attempt in {1..5}; do
-            if gh release upload "$RELEASE_TAG_NAME" out/binary_distrib.tar.gz --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT_NAME" --clobber; then
+            if gh release upload "$RELEASE_TAG_NAME" "$asset_path" --repo "$GITHUB_REPOSITORY" --clobber; then
               success=1
               break
             fi
@@ -265,16 +269,22 @@ jobs:
           ARTIFACT_NAME: ${{ matrix.artifact }}
         run: |
           $ErrorActionPreference = 'Stop'
-          for ($attempt = 1; $attempt -le 5; $attempt++) {
-            try {
-              gh release upload $env:RELEASE_TAG_NAME out/binary_distrib.tar.gz --repo $env:GITHUB_REPOSITORY --name $env:ARTIFACT_NAME --clobber
-              $success = $true
-              break
-            } catch {
-              if ($attempt -eq 5) { throw }
-              Write-Host "Upload attempt $attempt failed. Retrying in 15 seconds..."
-              Start-Sleep -Seconds 15
+          $assetPath = Join-Path "out" $env:ARTIFACT_NAME
+          Copy-Item "out/binary_distrib.tar.gz" $assetPath -Force
+          try {
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              try {
+                gh release upload $env:RELEASE_TAG_NAME $assetPath --repo $env:GITHUB_REPOSITORY --clobber
+                $success = $true
+                break
+              } catch {
+                if ($attempt -eq 5) { throw }
+                Write-Host "Upload attempt $attempt failed. Retrying in 15 seconds..."
+                Start-Sleep -Seconds 15
+              }
             }
+          } finally {
+            Remove-Item $assetPath -ErrorAction SilentlyContinue
           }
 
       - name: Publish javadoc
