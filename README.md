@@ -14,8 +14,8 @@ jcefmaven</a></h6>
 <table>
   <tr>
     <td width="12%"></td>
-    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/linux.svg" alt="linux" width="32" height="32"></a><br/><b>amd64, arm64 & arm</b></td>
-    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>amd64 & i386</b></td>
+    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/linux.svg" alt="linux" width="32" height="32"></a><br/><b>amd64 & arm64</b></td>
+    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>amd64</b></td>
     <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>arm64</b></td>
     <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/apple.svg" alt="apple" width="32" height="32"></a><br/><b>amd64 & arm64</b></td>
   </tr>
@@ -68,10 +68,10 @@ activate the workflows and manually run the `build` workflow with your repositor
 the optional `targets` input to limit the matrix (e.g. `linux-amd64,windows-amd64`) or leave it as `all` to build every
 supported platform, and enable `publish_release` if you want the workflow to publish the resulting artifacts to a
 GitHub release.
-To produce a build for MacOS, you will need to specify your code signing information or remove the signing and
-notarization steps from the action workflows.
+Mac builds are produced unsigned by default. Set the `sign_macos` workflow input to `true` and provide the credentials
+below if you need signed and notarized artifacts.
 
-Required Actions Secrets for signing and notarization:
+Optional Actions Secrets for signing and notarization (required when `sign_macos=true`):
 
 +`APPLE_API_KEY_BASE64`: Your API key to access the Apple Notarization Service (in base64)
 +`APPLE_API_KEY_ISSUER`: UUID of issuer (can be found along with your generated key in Apple Dev Console)

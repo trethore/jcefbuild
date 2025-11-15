@@ -20,6 +20,11 @@ on:
         required: false
         default: false
         type: boolean
+      sign_macos:
+        description: 'Sign macOS builds (requires Apple Developer secrets)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   determine-targets:
@@ -38,10 +43,8 @@ jobs:
           targets = [
               {"id": "linux-amd64", "os": "ubuntu-latest", "family": "linux", "build_target": "amd64", "artifact": "linux-amd64.tar.gz", "qemu": False, "publish_javadoc": False},
               {"id": "linux-arm64", "os": "ubuntu-latest", "family": "linux", "build_target": "arm64", "artifact": "linux-arm64.tar.gz", "qemu": True, "publish_javadoc": False},
-              {"id": "linux-arm", "os": "ubuntu-latest", "family": "linux", "build_target": "arm/v6", "artifact": "linux-arm.tar.gz", "qemu": True, "publish_javadoc": False},
               {"id": "windows-amd64", "os": "windows-2022", "family": "windows", "build_target": "amd64", "artifact": "windows-amd64.tar.gz", "qemu": False, "publish_javadoc": False},
               {"id": "windows-arm64", "os": "windows-2022", "family": "windows", "build_target": "arm64", "artifact": "windows-arm64.tar.gz", "qemu": False, "publish_javadoc": False},
-              {"id": "windows-i386", "os": "windows-2022", "family": "windows", "build_target": "386", "artifact": "windows-i386.tar.gz", "qemu": False, "publish_javadoc": False},
               {"id": "macosx-amd64", "os": "macos-latest", "family": "macos", "build_target": "amd64", "artifact": "macosx-amd64.tar.gz", "qemu": False, "publish_javadoc": True},
               {"id": "macosx-arm64", "os": "macos-latest", "family": "macos", "build_target": "arm64", "artifact": "macosx-arm64.tar.gz", "qemu": False, "publish_javadoc": False},
           ]
@@ -153,6 +156,39 @@ jobs:
       matrix: ${{ fromJSON(needs.determine-targets.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare cache keys
+        id: cache-meta
+        shell: python
+        env:
+          REPO_URL: ${{ inputs.repo }}
+          TARGET_REF: ${{ inputs.ref }}
+          TARGET_ARCH: ${{ matrix.build_target }}
+        run: |
+          import os
+          import re
+
+          def sanitize(value: str) -> str:
+              value = value.replace('/', '_')
+              return re.sub(r'[^A-Za-z0-9._-]', '-', value)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"repo_safe={sanitize(os.environ['REPO_URL'])}\n")
+              fh.write(f"ref_safe={sanitize(os.environ['TARGET_REF'])}\n")
+              fh.write(f"target_safe={sanitize(os.environ['TARGET_ARCH'])}\n")
+      - name: Prepare dependency cache directories
+        shell: bash
+        run: |
+          mkdir -p jcef/third_party
+          mkdir -p jcef/tools/buildtools
+      - name: Cache JCEF dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            jcef/third_party
+            jcef/tools/buildtools
+          key: jcef-deps-${{ steps.cache-meta.outputs.repo_safe }}-${{ steps.cache-meta.outputs.ref_safe }}
+          restore-keys: |
+            jcef-deps-${{ steps.cache-meta.outputs.repo_safe }}-
 
       - name: Set up QEMU
         if: ${{ matrix.qemu == true }}
@@ -163,6 +199,15 @@ jobs:
       - name: Set up Docker Buildx
         if: ${{ matrix.family == 'linux' }}
         uses: docker/setup-buildx-action@v3
+
+      - name: Restore Docker Buildx cache (Linux)
+        if: ${{ matrix.family == 'linux' }}
+        uses: actions/cache@v4
+        with:
+          path: .buildx-cache/linux-${{ steps.cache-meta.outputs.target_safe }}
+          key: buildx-linux-${{ steps.cache-meta.outputs.target_safe }}-${{ hashFiles('docker/DockerfileLinux', 'scripts/run_linux.sh', 'compile_linux.sh') }}
+          restore-keys: |
+            buildx-linux-${{ steps.cache-meta.outputs.target_safe }}-
 
       - name: Setup macOS environment
         if: ${{ matrix.family == 'macos' }}
@@ -184,7 +229,7 @@ jobs:
           python-version: '3.10.11'
 
       - name: Install Apple certificate
-        if: ${{ matrix.family == 'macos' }}
+        if: ${{ matrix.family == 'macos' && inputs.sign_macos }}
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
@@ -212,6 +257,8 @@ jobs:
         run: |
           chmod +x compile_linux.sh
           ./compile_linux.sh ${{ matrix.build_target }} Release ${{ inputs.repo }} ${{ inputs.ref }}
+        env:
+          BUILDX_CACHE_ROOT: ${{ github.workspace }}/.buildx-cache
 
       - name: Build (Windows)
         if: ${{ matrix.family == 'windows' }}
@@ -219,14 +266,20 @@ jobs:
         run: |
           compile_windows.bat ${{ matrix.build_target }} Release ${{ inputs.repo }} ${{ inputs.ref }}
 
-      - name: Build (macOS)
-        if: ${{ matrix.family == 'macos' }}
+      - name: Build (macOS, signed)
+        if: ${{ matrix.family == 'macos' && inputs.sign_macos }}
         run: |
           chmod +x compile_macosx.sh
           ./compile_macosx.sh ${{ matrix.build_target }} Release ${{ inputs.repo }} ${{ inputs.ref }} "${{ secrets.APPLE_BUILD_CERTIFICATE_NAME }}" ${{ secrets.APPLE_TEAM_NAME }} ${{ secrets.APPLE_API_KEY_ID }} "${HOME}/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_NAME }}.p8" ${{ secrets.APPLE_API_KEY_ISSUER }}
 
+      - name: Build (macOS, unsigned)
+        if: ${{ matrix.family == 'macos' && !inputs.sign_macos }}
+        run: |
+          chmod +x compile_macosx.sh
+          ./compile_macosx.sh ${{ matrix.build_target }} Release ${{ inputs.repo }} ${{ inputs.ref }}
+
       - name: Clean up keychain
-        if: ${{ always() && matrix.family == 'macos' }}
+        if: ${{ always() && matrix.family == 'macos' && inputs.sign_macos }}
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
           rm -rf "${HOME}/private_keys"

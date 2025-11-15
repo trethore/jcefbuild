@@ -1,12 +1,20 @@
 #!/bin/bash
+set -euo pipefail
 
 # Determine architecture
 echo "Building for architecture $TARGETARCH"
+if [ "${TARGETARCH}" != 'amd64' ] && [ "${TARGETARCH}" != 'arm64' ]; then
+    echo "Unsupported architecture ${TARGETARCH}. Only amd64 and arm64 are supported."
+    exit 1
+fi
 
-# Point to jdk installation on arm/v6
-if [ ${TARGETARCH} == 'arm/v6' ]; then
-    export PATH=$PATH:/usr/lib/jvm/java-11-openjdk-armel/bin
-    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-armel
+# Ensure JAVA_HOME points to an existing JDK even when the predefined path is missing.
+if [ -n "${JAVA_HOME:-}" ] && [ ! -d "$JAVA_HOME" ]; then
+    unset JAVA_HOME
+fi
+if [ -z "${JAVA_HOME:-}" ] && command -v java >/dev/null 2>&1; then
+    JAVA_BIN=$(readlink -f "$(command -v java)")
+    export JAVA_HOME="${JAVA_BIN%/bin/java}"
 fi
 
 # Print some debug info
@@ -56,40 +64,19 @@ ninja -j4
 #Compile JCEF java classes
 cd ../tools
 chmod +x compile.sh
-if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
-    ./compile.sh linux64
-elif [ ${TARGETARCH} == '386' ]; then
-    echo "386 is no longer supported since chromium 104"
-    exit 1
-else
-    echo "Can not compile java classes under arm/v6 currently. So we copy from prebuild directory."
-    mkdir -p /jcef/out/linux32
-    cp -r /prebuild/* /jcef/out/linux32/
-fi
+./compile.sh linux64
 
-#Entering distribution phase - disable error handling (javadoc building fails here nontheless)
-set -e
+#Entering distribution phase - error handling already enabled
 
 #Generate distribution
 chmod +x make_distrib.sh
-if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
-    ./make_distrib.sh linux64
-else
-    ./make_distrib.sh linux32
-fi
+./make_distrib.sh linux64
 
 #Pack binary_distrib
-if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
-    cd ../binary_distrib/linux64
-    if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux64/libcef.so) fi
-    #Replace natives on arm64
-    if [ ${TARGETARCH} == 'arm64' ]; then (rm bin/gluegen-rt-natives* && rm bin/jogl-all-natives* && cp /natives/gluegen-rt-natives-linux-aarch64.jar bin && cp /natives/jogl-all-natives-linux-aarch64.jar bin) fi
-else
-    cd ../binary_distrib/linux32
-    if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux32/libcef.so) fi
-    #Replace natives on armv6
-    if [ ${TARGETARCH} == 'arm/v6' ]; then (rm bin/gluegen-rt-natives* && rm bin/jogl-all-natives* && cp /natives/gluegen-rt-natives-linux-armv6hf.jar bin && cp /natives/jogl-all-natives-linux-armv6hf.jar bin) fi
-fi
+cd ../binary_distrib/linux64
+if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux64/libcef.so) fi
+#Replace natives on arm64
+if [ ${TARGETARCH} == 'arm64' ]; then (rm bin/gluegen-rt-natives* && rm bin/jogl-all-natives* && cp /natives/gluegen-rt-natives-linux-aarch64.jar bin && cp /natives/jogl-all-natives-linux-aarch64.jar bin) fi
 
 #Export binaries
 tar -czvf ../../binary_distrib.tar.gz *
