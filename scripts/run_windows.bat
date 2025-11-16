@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableExtensions EnableDelayedExpansion
 
 if /I not "%TARGETARCH%"=="amd64" if /I not "%TARGETARCH%"=="arm64" (
     echo "Unsupported architecture %TARGETARCH%. Only amd64 and arm64 are supported."
@@ -28,25 +29,35 @@ if "%TARGETARCH%"=="arm64" (call "C:\Program Files (x86)\Microsoft Visual Studio
 if "%TARGETARCH%"=="arm64" (set "PATH=C:/jdk-11;%PATH%")
 
 :: Perform build
-if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DJAVA_HOME="C:/Program Files/Java/jdk1.8.0_211" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..)
-if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DJAVA_HOME="C:/jdk-11" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..)
-ninja -j4
+if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DJAVA_HOME="C:/Program Files/Java/jdk1.8.0_211" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DJAVA_HOME="C:/jdk-11" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..) || exit /b !ERRORLEVEL!
+ninja -j4 || exit /b !ERRORLEVEL!
 
 :: Compile java classes
 cd ../tools
-call compile.bat win64
+call compile.bat win64 || exit /b !ERRORLEVEL!
 
 :: Create distribution
-call make_distrib.bat win64
+call make_distrib.bat win64 || exit /b !ERRORLEVEL!
 
-:: Go to results
-cd ../binary_distrib/win64
+:: Locate distribution directory (win64 by default, fallback to winarm64 for future-proofing)
+set "DIST_PATH=..\binary_distrib\win64"
+if not exist "%DIST_PATH%\" (
+    set "DIST_PATH=..\binary_distrib\winarm64"
+)
+if not exist "%DIST_PATH%\" (
+    echo "Distribution directory not found under ..\binary_distrib"
+    dir ..\binary_distrib
+    exit /b 1
+)
+pushd "%DIST_PATH%" || exit /b !ERRORLEVEL!
 :: Remove wrong jogamp/gluegen natives from archive
 if "%TARGETARCH%"=="arm64" (del /F bin\gluegen-rt-natives-windows-amd64.jar && del /F bin\jogl-all-natives-windows-amd64.jar)
 :: Zip results to C:\out
-del /F C:\out\binary_distrib.tar.gz
 if not exist "C:\out" mkdir "C:\out"
-tar -czvf C:\out\binary_distrib.tar.gz *
+del /F C:\out\binary_distrib.tar.gz 2>nul
+tar -czvf C:\out\binary_distrib.tar.gz * || (popd & exit /b !ERRORLEVEL!)
+popd
 
 GOTO :EOF
 
