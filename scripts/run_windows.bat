@@ -22,16 +22,16 @@ python C:/patch_cmake.py CMakeLists.txt C:/CMakeLists.txt.patch
 :: Prepare build dir
 mkdir jcef_build && cd jcef_build
 
+:: Load vcvars for 32 or 64-bit builds
+if "%TARGETARCH%"=="amd64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat")
+if "%TARGETARCH%"=="arm64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat")
+
 :: Force desktop Windows API partition to avoid missing FILE_INFO_BY_HANDLE_CLASS in server-core images
 if defined CL (
     set "CL=%CL% /DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
 ) else (
     set "CL=/DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
 )
-
-:: Load vcvars for 32 or 64-bit builds
-if "%TARGETARCH%"=="amd64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat")
-if "%TARGETARCH%"=="arm64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat")
 
 if "%TARGETARCH%"=="arm64" (set "PATH=C:/jdk-11;%PATH%")
 
