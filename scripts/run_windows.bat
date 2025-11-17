@@ -26,18 +26,16 @@ mkdir jcef_build && cd jcef_build
 if "%TARGETARCH%"=="amd64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat")
 if "%TARGETARCH%"=="arm64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat")
 
-:: Force desktop Windows API partition to avoid missing FILE_INFO_BY_HANDLE_CLASS in server-core images
-if defined CL (
-    set "CL=%CL% /DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
-) else (
-    set "CL=/DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
-)
+:: Force desktop Windows API partition to avoid missing FILE_INFO_BY_HANDLE_CLASS in server-core images.
+:: Passing these defines via CMake ensures they appear in every Ninja compile command (CL env alone is not enough).
+set "WINAPI_DEFINES=/DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
+if defined CL (set "CL=%CL% %WINAPI_DEFINES%") else (set "CL=%WINAPI_DEFINES%")
 
 if "%TARGETARCH%"=="arm64" (set "PATH=C:/jdk-11;%PATH%")
 
 :: Perform build
-if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DJAVA_HOME="C:/Program Files/Java/jdk1.8.0_211" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..) || exit /b !ERRORLEVEL!
-if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DJAVA_HOME="C:/jdk-11" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DJAVA_HOME="C:/Program Files/Java/jdk1.8.0_211" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DJAVA_HOME="C:/jdk-11" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
 ninja -j4 || exit /b !ERRORLEVEL!
 
 :: Compile java classes
