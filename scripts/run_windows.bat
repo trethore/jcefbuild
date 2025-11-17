@@ -22,9 +22,10 @@ python C:/patch_cmake.py CMakeLists.txt C:/CMakeLists.txt.patch
 :: Prepare build dir
 mkdir jcef_build && cd jcef_build
 
-:: Load vcvars for 32 or 64-bit builds
-if "%TARGETARCH%"=="amd64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat")
-if "%TARGETARCH%"=="arm64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat")
+:: Load vcvars for 32 or 64-bit builds (installed under C:\BuildTools)
+set "VS_VCVARS=C:\BuildTools\VC\Auxiliary\Build"
+if "%TARGETARCH%"=="amd64" (call "%VS_VCVARS%\vcvars64.bat")
+if "%TARGETARCH%"=="arm64" (call "%VS_VCVARS%\vcvarsamd64_arm64.bat")
 
 :: Force desktop Windows API partition to avoid missing FILE_INFO_BY_HANDLE_CLASS in server-core images.
 :: Passing these defines via CMake ensures they appear in every Ninja compile command (CL env alone is not enough).

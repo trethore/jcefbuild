@@ -9,17 +9,17 @@ RUN powershell -Command \
     iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); \
     choco feature disable --name showDownloadProgress
 
-RUN choco config set cachelocation C:\chococache
+RUN choco config set cachelocation C:\c
 
-RUN choco install jdk8 -params "both=true" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
+RUN choco install jdk8 -params "both=true" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 COPY scripts/windows_download_arm64_jdk.bat windows_download_arm64_jdk.bat
 RUN windows_download_arm64_jdk.bat && del windows_download_arm64_jdk.bat
-RUN choco install cmake.install --version=3.19 --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
+RUN choco install cmake.install --version=3.19 --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN reg add HKLM\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f
-RUN choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --installPath C:\BuildTools" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
+RUN choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --installPath C:\BuildTools" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 
 WORKDIR C:/
 
