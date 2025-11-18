@@ -4,6 +4,9 @@ FROM mcr.microsoft.com/dotnet/framework/runtime:4.8.1-20221213-windowsservercore
 LABEL jcefbuild=true
 
 ENV chocolateyUseWindowsCompression false
+# Allow extraction/install paths longer than 260 characters to avoid ImportLayer
+# failures when Chocolatey unpacks Visual Studio payloads.
+RUN reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f
 
 RUN powershell -Command \
     iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); \
