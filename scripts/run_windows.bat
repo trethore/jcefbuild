@@ -29,8 +29,22 @@ if not exist "%VSWHERE%" set "VSWHERE=C:\ProgramData\chocolatey\lib\vswhere\tool
 for /f "usebackq tokens=*" %%I in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL=%%I"
 if not defined VS_INSTALL set "VS_INSTALL=C:\BuildTools"
 set "VS_VCVARS=%VS_INSTALL%\VC\Auxiliary\Build"
-if "%TARGETARCH%"=="amd64" (call "%VS_VCVARS%\vcvars64.bat")
-if "%TARGETARCH%"=="arm64" (call "%VS_VCVARS%\vcvarsamd64_arm64.bat")
+set "VS_DEV_CMD=%VS_INSTALL%\Common7\Tools\VsDevCmd.bat"
+if "%TARGETARCH%"=="amd64" (
+    call "%VS_VCVARS%\vcvars64.bat"
+) else (
+    set "VCVARS_ARM64=%VS_VCVARS%\vcvarsamd64_arm64.bat"
+    if exist "%VCVARS_ARM64%" (
+        call "%VCVARS_ARM64%"
+    ) else if exist "%VS_DEV_CMD%" (
+        rem Fall back to VsDevCmd when the cross vcvars script is missing (happens on some BuildTools layouts)
+        call "%VS_DEV_CMD%" -host_arch=amd64 -arch=arm64
+    ) else (
+        echo "Neither vcvarsamd64_arm64.bat nor VsDevCmd.bat were found under %VS_INSTALL%."
+        dir "%VS_VCVARS%"
+        exit /b 1
+    )
+)
 
 :: Force desktop Windows API partition to avoid missing FILE_INFO_BY_HANDLE_CLASS in server-core images.
 :: Passing these defines via CMake ensures they appear in every Ninja compile command (CL env alone is not enough).
