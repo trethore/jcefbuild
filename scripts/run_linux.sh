@@ -2,24 +2,24 @@
 set -euo pipefail
 
 # Determine architecture
-echo "Building for architecture $TARGETARCH"
-if [ "${TARGETARCH}" != 'amd64' ] && [ "${TARGETARCH}" != 'arm64' ]; then
+echo "Building for architecture ${TARGETARCH}"
+if [ "${TARGETARCH}" != "amd64" ] && [ "${TARGETARCH}" != "arm64" ]; then
     echo "Unsupported architecture ${TARGETARCH}. Only amd64 and arm64 are supported."
     exit 1
 fi
 
 # Ensure JAVA_HOME points to an existing JDK even when the predefined path is missing.
-if [ -n "${JAVA_HOME:-}" ] && [ ! -d "$JAVA_HOME" ]; then
+if [ -n "${JAVA_HOME:-}" ] && [ ! -d "${JAVA_HOME}" ]; then
     unset JAVA_HOME
 fi
 if [ -z "${JAVA_HOME:-}" ] && command -v java >/dev/null 2>&1; then
-    JAVA_BIN=$(readlink -f "$(command -v java)")
+    JAVA_BIN="$(readlink -f "$(command -v java)")"
     export JAVA_HOME="${JAVA_BIN%/bin/java}"
 fi
 
 # Print some debug info
 echo "-------------------------------------"
-echo "JAVA_HOME: $JAVA_HOME"
+echo "JAVA_HOME: ${JAVA_HOME:-unset}"
 echo "PATH: $PATH"
 java -version
 echo "-------------------------------------"
@@ -28,9 +28,10 @@ echo "-------------------------------------"
 if [ ! -f "/jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf /jcef
-    git clone ${REPO} /jcef
+    git clone --filter=blob:none --depth 1 --no-tags "${REPO}" /jcef
+    git -C /jcef fetch --depth 1 origin "${REF}"
+    git -C /jcef checkout FETCH_HEAD
     cd /jcef
-    git checkout ${REF}
 else
     echo "Found existing files to build"
     cd /jcef
@@ -57,9 +58,10 @@ for f in ../third_party/cef/cef_binary_*; do
 done
 
 # Linux: Generate 32/64-bit Unix Makefiles.
-cmake -G "Ninja" -DPROJECT_ARCH=${TARGETARCH} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+cmake -G "Ninja" -DPROJECT_ARCH="${TARGETARCH}" -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" ..
 # Build native part using ninja.
-ninja
+NINJA_JOBS="${NINJA_JOBS:-$(nproc)}"
+ninja -j"${NINJA_JOBS}"
 
 #Compile JCEF java classes
 cd ../tools

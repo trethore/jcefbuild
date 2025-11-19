@@ -20,14 +20,7 @@ RUN powershell -Command \
 
 RUN choco config set cachelocation C:\c
 
-RUN choco install microsoft-openjdk17 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-COPY scripts/windows_download_arm64_jdk.bat windows_download_arm64_jdk.bat
-RUN windows_download_arm64_jdk.bat && del windows_download_arm64_jdk.bat
-RUN choco install cmake.install --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-RUN choco install vswhere --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-RUN choco install python --version=3.11.0 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+RUN choco install microsoft-openjdk17 cmake.install ninja git vswhere python --version=3.11.0 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 RUN $components = @('Microsoft.VisualStudio.Workload.NativeDesktop','Microsoft.VisualStudio.Component.VC.ATLMFC','Microsoft.VisualStudio.Component.Windows11SDK.26100','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','Microsoft.VisualStudio.Component.UCRT.Debug'); \
     if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; \
