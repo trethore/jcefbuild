@@ -27,10 +27,10 @@ RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q
 RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-RUN $components = @('Microsoft.VisualStudio.Workload.VCTools','Microsoft.VisualStudio.Component.VC.ATL','Microsoft.VisualStudio.Component.Windows11SDK.26100'); `
-    if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; `
-    $params = ($components | ForEach-Object { "--add $_" }) -join ' '; `
-    choco install visualstudio2022buildtools --package-parameters "$params --installPath C:\BuildTools" --confirm --limit-output --timeout 216000; `
+RUN $components = @('Microsoft.VisualStudio.Workload.VCTools','Microsoft.VisualStudio.Component.VC.ATL','Microsoft.VisualStudio.Component.Windows11SDK.26100'); \
+    if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; \
+    $params = ($components | ForEach-Object { "--add $_" }) -join ' '; \
+    choco install visualstudio2022buildtools --package-parameters "$params --installPath C:\BuildTools" --confirm --limit-output --timeout 216000; \
     Remove-Item -Recurse -Force C:\c
 SHELL ["cmd", "/S", "/C"]
 
