@@ -45,6 +45,23 @@ else
     cd jcef
 fi
 
+# On Apple Silicon runners, setup-java installs an arm64 JDK by default.
+# For x86_64 builds we need an x64 JDK to satisfy the linker.
+if [ "${TARGETARCH}" = "amd64" ]; then
+    if /usr/bin/file -b "$JAVA_HOME/bin/java" | grep -q "arm64"; then
+        echo "Detected arm64 JDK while building x86_64. Downloading x64 JDK 17..."
+        mkdir -p "$WORK_DIR/.jdk17_x64"
+        cd "$WORK_DIR/.jdk17_x64"
+        curl -L -o jdk.tar.gz https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_mac_hotspot.tar.gz
+        tar -xzf jdk.tar.gz
+        JAVA_HOME=$(find "$WORK_DIR/.jdk17_x64" -maxdepth 2 -type d -name "jdk-17*" | head -n1)
+        export JAVA_HOME
+        export PATH="$JAVA_HOME/bin:$PATH"
+        cd "$WORK_DIR"
+        echo "Switched JAVA_HOME to $JAVA_HOME"
+    fi
+fi
+
 # Create and enter the `jcef_build` directory.
 # The `jcef_build` directory name is required by other JCEF tooling
 # and should not be changed.
