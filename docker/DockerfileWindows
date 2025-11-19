@@ -1,6 +1,7 @@
 ARG WINDOWS_VERSION=ltsc2022
-ARG TARGETARCH=amd64
 FROM mcr.microsoft.com/dotnet/framework/runtime:4.8.1-20221213-windowsservercore-$WINDOWS_VERSION
+
+ARG TARGETARCH=amd64
 
 LABEL jcefbuild=true
 
