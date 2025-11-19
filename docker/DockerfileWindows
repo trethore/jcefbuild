@@ -27,7 +27,7 @@ RUN choco install cmake.install --installargs '"ADD_CMAKE_TO_PATH=System"' --con
 RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install vswhere --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+RUN choco install python --version=3.11.0 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 RUN $components = @('Microsoft.VisualStudio.Workload.NativeDesktop','Microsoft.VisualStudio.Component.VC.ATLMFC','Microsoft.VisualStudio.Component.Windows11SDK.26100','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','Microsoft.VisualStudio.Component.UCRT.Debug'); \
     if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; \

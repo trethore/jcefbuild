@@ -7,9 +7,6 @@ if /I not "%TARGETARCH%"=="amd64" if /I not "%TARGETARCH%"=="arm64" (
 )
 echo "Building for architecture %TARGETARCH%"
 
-:: Update ssl certs
-certutil -generateSSTFromWU roots.sst && certutil -addstore -f root roots.sst && del roots.sst
-
 :: Check residency of workdir
 cd ..
 if exist "jcef\README.md" (echo "Found existing files to build" && cd jcef) ^
@@ -53,25 +50,18 @@ if defined CL (set "CL=%CL% %WINAPI_DEFINES%") else (set "CL=%WINAPI_DEFINES%")
 
 if "%TARGETARCH%"=="arm64" (set "PATH=C:/jdk-11;%PATH%")
 
-:: DEBUG: Print environment and locate libraries
-echo ---------------------------------------------------------------
-echo [DEBUG] Target Architecture: %TARGETARCH%
-echo [DEBUG] Active Compiler:
-where cl
-echo [DEBUG] LIB Environment Variable:
-echo %LIB%
-echo [DEBUG] Searching for MSVCRTD.lib in BuildTools...
-if exist "C:\BuildTools" (
-    for /f "delims=" %%F in ('dir /s /b "C:\BuildTools\MSVCRTD.lib" 2^>nul') do echo [FOUND] %%F
-) else (
-    echo [ERROR] C:\BuildTools directory does not exist.
+:: Determine JAVA_HOME for AMD64 if not set (Dynamic lookup)
+if "%TARGETARCH%"=="amd64" (
+    if not defined JAVA_HOME (
+         for /d %%i in ("C:\Program Files\Java\jdk1.8.*") do set "JAVA_HOME=%%i"
+    )
 )
-echo ---------------------------------------------------------------
+if "%TARGETARCH%"=="arm64" (set "JAVA_HOME=C:/jdk-11")
 
 :: Perform build
-if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DJAVA_HOME="C:/Program Files/Java/jdk1.8.0_211" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
 if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_ASM_COMPILER=cl.exe -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DJAVA_HOME="C:/jdk-11" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
-ninja -j4 || exit /b !ERRORLEVEL!
+ninja || exit /b !ERRORLEVEL!
 
 :: Compile java classes
 cd ../tools

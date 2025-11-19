@@ -59,7 +59,7 @@ done
 # Linux: Generate 32/64-bit Unix Makefiles.
 cmake -G "Ninja" -DPROJECT_ARCH=${TARGETARCH} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
 # Build native part using ninja.
-ninja -j4
+ninja
 
 #Compile JCEF java classes
 cd ../tools
