@@ -25,9 +25,10 @@ RUN windows_download_arm64_jdk.bat && del windows_download_arm64_jdk.bat
 RUN choco install cmake.install --version=3.19 --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+RUN choco install vswhere --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-RUN $components = @('Microsoft.VisualStudio.Workload.VCTools','Microsoft.VisualStudio.Component.VC.ATL','Microsoft.VisualStudio.Component.Windows11SDK.26100'); \
+RUN $components = @('Microsoft.VisualStudio.Workload.VCTools','Microsoft.VisualStudio.Component.VC.ATL','Microsoft.VisualStudio.Component.Windows11SDK.26100','Microsoft.VisualStudio.Component.VC.Tools.x86.x64'); \
     if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; \
     $paramString = '--add ' + ($components -join ' --add ') + ' --installPath C:\BuildTools'; \
     choco install visualstudio2022buildtools --package-parameters $paramString --confirm --limit-output --timeout 216000; \

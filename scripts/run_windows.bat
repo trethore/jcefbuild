@@ -22,8 +22,13 @@ python C:/patch_cmake.py CMakeLists.txt C:/CMakeLists.txt.patch
 :: Prepare build dir
 mkdir jcef_build && cd jcef_build
 
-:: Load vcvars for 32 or 64-bit builds (installed under C:\BuildTools)
-set "VS_VCVARS=C:\BuildTools\VC\Auxiliary\Build"
+:: Locate Visual Studio Build Tools and load the right vcvars script.
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if not exist "%VSWHERE%" set "VSWHERE=C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"
+if not exist "%VSWHERE%" set "VSWHERE=C:\ProgramData\chocolatey\lib\vswhere\tools\vswhere.exe"
+for /f "usebackq tokens=*" %%I in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL=%%I"
+if not defined VS_INSTALL set "VS_INSTALL=C:\BuildTools"
+set "VS_VCVARS=%VS_INSTALL%\VC\Auxiliary\Build"
 if "%TARGETARCH%"=="amd64" (call "%VS_VCVARS%\vcvars64.bat")
 if "%TARGETARCH%"=="arm64" (call "%VS_VCVARS%\vcvarsamd64_arm64.bat")
 
