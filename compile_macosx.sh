@@ -50,14 +50,16 @@ fi
 if [ "${TARGETARCH}" = "amd64" ]; then
     if /usr/bin/file -b "$JAVA_HOME/bin/java" | grep -q "arm64"; then
         echo "Detected arm64 JDK while building x86_64. Downloading x64 JDK 17..."
-        mkdir -p "$WORK_DIR/.jdk17_x64"
-        cd "$WORK_DIR/.jdk17_x64"
-        curl -L -o jdk.tar.gz https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_mac_hotspot.tar.gz
-        tar -xzf jdk.tar.gz
-        JAVA_HOME=$(find "$WORK_DIR/.jdk17_x64" -maxdepth 2 -type d -name "jdk-17*" | head -n1)
+        JDK_X64_DIR="$WORK_DIR/.jdk17_x64"
+        mkdir -p "$JDK_X64_DIR"
+        (
+            cd "$JDK_X64_DIR"
+            curl -L -o jdk.tar.gz https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_mac_hotspot.tar.gz
+            tar -xzf jdk.tar.gz
+        )
+        JAVA_HOME=$(find "$JDK_X64_DIR" -maxdepth 2 -type d -name "jdk-17*" | head -n1)
         export JAVA_HOME
         export PATH="$JAVA_HOME/bin:$PATH"
-        cd "$WORK_DIR"
         echo "Switched JAVA_HOME to $JAVA_HOME"
     fi
 fi
