@@ -54,20 +54,25 @@ if "%TARGETARCH%"=="amd64" (
 :: Force desktop Windows API partition to avoid missing FILE_INFO_BY_HANDLE_CLASS in server-core images.
 :: Passing these defines via CMake ensures they appear in every Ninja compile command (CL env alone is not enough).
 set "WINAPI_DEFINES=/DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
+set "MSVC_RUNTIME=MultiThreaded$<$<CONFIG:Debug>:Debug>"
 if defined CL (set "CL=%CL% %WINAPI_DEFINES%") else (set "CL=%WINAPI_DEFINES%")
 
-:: Determine JAVA_HOME for both architectures if not set (Dynamic lookup)
+:: Determine JAVA_HOME; prefer architecture-appropriate installs.
 if not defined JAVA_HOME (
-    for /d %%i in ("C:\Program Files\Microsoft\jdk-17*") do set "JAVA_HOME=%%i"
+    if "%TARGETARCH%"=="arm64" (
+        if exist "C:\jdk-17\" set "JAVA_HOME=C:\jdk-17"
+    ) else (
+        for /d %%i in ("C:\Program Files\Microsoft\jdk-17*") do set "JAVA_HOME=%%i"
+    )
 )
 if not defined JAVA_HOME (
-    echo "JAVA_HOME is not set and no JDK 17 was found under Program Files."
+    echo "JAVA_HOME is not set and no JDK 17 was found (checked C:\jdk-17 for arm64, Program Files for amd64)."
     exit /b 1
 )
 
 :: Perform build
-if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
-if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_ASM_COMPILER=cl.exe -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DJAVA_HOME="C:/jdk-17" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_MSVC_RUNTIME_LIBRARY="%MSVC_RUNTIME%" -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_ASM_COMPILER=cl.exe -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DJAVA_HOME="C:/jdk-17" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_MSVC_RUNTIME_LIBRARY="%MSVC_RUNTIME%" -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
 ninja || exit /b !ERRORLEVEL!
 
 :: Compile java classes

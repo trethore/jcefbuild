@@ -23,6 +23,17 @@ RUN choco config set cachelocation C:\c
 RUN choco install microsoft-openjdk17 git ninja vswhere cmake.install --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c \
     && choco install python --version=3.11.0 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+RUN if ($env:TARGETARCH -eq 'arm64') { \
+        Write-Host 'Downloading Microsoft OpenJDK 17 (arm64)...'; \
+        $zip = Join-Path $env:TEMP 'jdk_arm64.zip'; \
+        Invoke-WebRequest -Uri 'https://aka.ms/download-jdk/microsoft-jdk-17-windows-aarch64.zip' -OutFile $zip; \
+        Expand-Archive -Path $zip -DestinationPath C:\; \
+        Remove-Item $zip; \
+        $extracted = Get-ChildItem C:\ -Directory | Where-Object { $_.Name -like 'jdk-17*' } | Select-Object -First 1; \
+        if (-not $extracted) { Write-Error 'Failed to locate extracted arm64 JDK'; exit 1 }; \
+        if ($extracted.FullName -ne 'C:\jdk-17') { Rename-Item -Path $extracted.FullName -NewName 'jdk-17' }; \
+    }
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 RUN $components = @('Microsoft.VisualStudio.Workload.NativeDesktop','Microsoft.VisualStudio.Component.VC.ATLMFC','Microsoft.VisualStudio.Component.Windows11SDK.26100','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','Microsoft.VisualStudio.Component.UCRT.Debug'); \
     if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; \
     $paramString = '--add ' + ($components -join ' --add ') + ' --includeRecommended --nocache --installPath C:\BuildTools'; \
