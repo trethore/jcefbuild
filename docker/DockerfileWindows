@@ -29,8 +29,8 @@ RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 2160
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 RUN $components = @('Microsoft.VisualStudio.Workload.VCTools','Microsoft.VisualStudio.Component.VC.ATL','Microsoft.VisualStudio.Component.Windows11SDK.26100'); \
     if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; \
-    $params = ($components | ForEach-Object { "--add $_" }) -join ' '; \
-    choco install visualstudio2022buildtools --package-parameters "$params --installPath C:\BuildTools" --confirm --limit-output --timeout 216000; \
+    $paramString = '--add ' + ($components -join ' --add ') + ' --installPath C:\BuildTools'; \
+    choco install visualstudio2022buildtools --package-parameters $paramString --confirm --limit-output --timeout 216000; \
     Remove-Item -Recurse -Force C:\c
 SHELL ["cmd", "/S", "/C"]
 
