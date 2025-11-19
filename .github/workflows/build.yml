@@ -164,8 +164,8 @@ jobs:
         if: ${{ matrix.family == 'macos' }}
         uses: actions/setup-java@v4
         with:
-          java-version: '8'
-          distribution: 'corretto'
+          java-version: '17'
+          distribution: 'microsoft'
 
       - name: Set up Python
         if: ${{ matrix.family == 'macos' }}

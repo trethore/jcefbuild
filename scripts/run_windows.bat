@@ -7,6 +7,9 @@ if /I not "%TARGETARCH%"=="amd64" if /I not "%TARGETARCH%"=="arm64" (
 )
 echo "Building for architecture %TARGETARCH%"
 
+:: Update ssl certs (Required for Python/GSUtil to download clang-format)
+certutil -generateSSTFromWU roots.sst && certutil -addstore -f root roots.sst && del roots.sst
+
 :: Check residency of workdir
 cd ..
 if exist "jcef\README.md" (echo "Found existing files to build" && cd jcef) ^
@@ -48,19 +51,19 @@ if "%TARGETARCH%"=="amd64" (
 set "WINAPI_DEFINES=/DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP /D_CRT_USE_WINAPI_FAMILY_DESKTOP_APP"
 if defined CL (set "CL=%CL% %WINAPI_DEFINES%") else (set "CL=%WINAPI_DEFINES%")
 
-if "%TARGETARCH%"=="arm64" (set "PATH=C:/jdk-11;%PATH%")
+if "%TARGETARCH%"=="arm64" (set "PATH=C:/jdk-17;%PATH%")
 
 :: Determine JAVA_HOME for AMD64 if not set (Dynamic lookup)
 if "%TARGETARCH%"=="amd64" (
     if not defined JAVA_HOME (
-         for /d %%i in ("C:\Program Files\Java\jdk1.8.*") do set "JAVA_HOME=%%i"
+         for /d %%i in ("C:\Program Files\Microsoft\jdk-17*") do set "JAVA_HOME=%%i"
     )
 )
-if "%TARGETARCH%"=="arm64" (set "JAVA_HOME=C:/jdk-11")
+if "%TARGETARCH%"=="arm64" (set "JAVA_HOME=C:/jdk-17")
 
 :: Perform build
 if "%TARGETARCH%"=="amd64" (cmake -G "Ninja" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
-if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_ASM_COMPILER=cl.exe -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DJAVA_HOME="C:/jdk-11" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
+if "%TARGETARCH%"=="arm64" (cmake -G "Ninja" -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_ASM_COMPILER=cl.exe -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DJAVA_HOME="C:/jdk-17" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_C_FLAGS="%WINAPI_DEFINES%" -DCMAKE_CXX_FLAGS="%WINAPI_DEFINES%" ..) || exit /b !ERRORLEVEL!
 ninja || exit /b !ERRORLEVEL!
 
 :: Compile java classes
