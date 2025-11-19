@@ -24,7 +24,7 @@ if "%~3"=="" (set "REPO=https://github.com/trethore/java-chromium-embedded-frame
 if "%~4"=="" (set "REF=master") else (set "REF=%~4")
 
 :: Execute build with windows Dockerfile (no cache to avoid stale VS/SDK layers)
-docker build --no-cache -t jcefbuild --file docker/DockerfileWindows .
+docker build --no-cache --build-arg TARGETARCH=%ARCH% -t jcefbuild --file docker/DockerfileWindows .
 if errorlevel 1 exit /b !ERRORLEVEL!
 
 :: Execute run with windows Dockerfile

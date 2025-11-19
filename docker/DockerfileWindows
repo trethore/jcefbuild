@@ -1,9 +1,14 @@
 ARG WINDOWS_VERSION=ltsc2022
+ARG TARGETARCH=amd64
 FROM mcr.microsoft.com/dotnet/framework/runtime:4.8.1-20221213-windowsservercore-$WINDOWS_VERSION
 
 LABEL jcefbuild=true
 
 ENV chocolateyUseWindowsCompression false
+# Keep temp/cache paths short to reduce path-length issues for VS bootstrapper.
+ENV TEMP=C:\\Temp
+ENV TMP=C:\\Temp
+RUN if not exist C:\\Temp mkdir C:\\Temp
 # Allow extraction/install paths longer than 260 characters to avoid ImportLayer
 # failures when Chocolatey unpacks Visual Studio payloads.
 RUN reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
@@ -21,7 +26,13 @@ RUN choco install cmake.install --version=3.19 --installargs '"ADD_CMAKE_TO_PATH
 RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
 RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
-RUN choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --installPath C:\BuildTools" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\c
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+RUN $components = @('Microsoft.VisualStudio.Workload.VCTools','Microsoft.VisualStudio.Component.VC.ATL','Microsoft.VisualStudio.Component.Windows11SDK.26100'); `
+    if ($env:TARGETARCH -eq 'arm64') { $components += 'Microsoft.VisualStudio.Component.VC.Tools.ARM64' }; `
+    $params = ($components | ForEach-Object { "--add $_" }) -join ' '; `
+    choco install visualstudio2022buildtools --package-parameters "$params --installPath C:\BuildTools" --confirm --limit-output --timeout 216000; `
+    Remove-Item -Recurse -Force C:\c
+SHELL ["cmd", "/S", "/C"]
 
 WORKDIR C:/
 
