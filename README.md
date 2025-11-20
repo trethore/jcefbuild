@@ -21,24 +21,24 @@ jcefmaven</a></h6>
   </tr>
   <tr>
     <td><b>Java</b></td>
-    <td>OpenJDK 11</td>
-    <td>Oracle JDK 8</td>
-    <td>Microsoft JDK 11</td>
-    <td>Temurin JDK 8</td>
+    <td>OpenJDK 17</td>
+    <td>Microsoft OpenJDK 17</td>
+    <td>Microsoft OpenJDK 17</td>
+    <td>JDK 17 (setup-java on macos-latest)</td>
   </tr>
   <tr>
     <td><b>Compiler</b></td>
-    <td>GCC 10</td>
-    <td>VS 2019</td>
-    <td>VS 2019</td>
-    <td>Xcode 13</td>
+    <td>GCC 12 (Debian bookworm)</td>
+    <td>Visual Studio 2022 Build Tools + Windows 11 SDK 26100</td>
+    <td>Visual Studio 2022 Build Tools + Windows 11 SDK 26100</td>
+    <td>Xcode (macos-latest runners, currently 15.x)</td>
   </tr>
   <tr>
     <td><b>Build</b></td>
-    <td>Python 3.7; <code>ninja</code></td>
-    <td>Python 3.7; <code>ninja</code></td>
-    <td>Python 3.7; <code>ninja</code></td>
-    <td>Python 2.7; <code>ninja</code>; SDK10.13</td>
+    <td>Python 3.11; <code>ninja</code></td>
+    <td>Python 3.11; <code>ninja</code></td>
+    <td>Python 3.11; <code>ninja</code></td>
+    <td>Python 3.10; <code>ninja</code>; macOS SDK from macos-latest (macOS 14)</td>
   </tr>
   <tr>
     <td><b>Limitations</b></td>
@@ -115,4 +115,3 @@ upstream [chromiumembedded](https://github.com/chromiumembedded) project as appr
 
 Feel free to open a pull request on this repository to improve its stability or artifact quality. Make sure to provide a
 valid GitHub Actions run for your pull requests to be accepted.
-
