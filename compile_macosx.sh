@@ -1,5 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 
+# Fail fast on invalid invocation so subsequent commands don't mask the problem.
 if [ $# -lt 2 ] || [ $# -eq 3 ]
   then
     echo "Usage: ./compile_macosx.sh <architecture> <buildType> [<gitrepo> <gitref>] [<certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>]"
@@ -45,22 +47,98 @@ else
     cd jcef
 fi
 
+# Ensure we use an x86_64 Java when targeting amd64 to avoid linker errors
+# like "found architecture 'arm64', required architecture 'x86_64'".
+ensure_java_arch() {
+    local expected_arch="$1"
+    local java_bin="${JAVA_HOME:-}/bin/java"
+
+    if [ -z "${JAVA_HOME:-}" ] || [ ! -x "$java_bin" ]; then
+        echo "JAVA_HOME is not set to a valid JDK (expected $expected_arch)."
+        return 1
+    fi
+
+    local archs
+    archs=$(lipo -archs "$java_bin" 2>/dev/null || true)
+    if [ -z "$archs" ]; then
+        archs=$(file -b "$java_bin" 2>/dev/null || true)
+    fi
+
+    if echo "$archs" | grep -q "$expected_arch"; then
+        echo "Detected JAVA_HOME with $expected_arch support: $JAVA_HOME ($archs)"
+        return 0
+    fi
+
+    return 1
+}
+
 # On Apple Silicon runners, setup-java installs an arm64 JDK by default.
 # For x86_64 builds we need an x64 JDK to satisfy the linker.
 if [ "${TARGETARCH}" = "amd64" ]; then
-    if /usr/bin/file -b "$JAVA_HOME/bin/java" | grep -q "arm64"; then
-        echo "Detected arm64 JDK while building x86_64. Downloading x64 JDK 17..."
+    if ! ensure_java_arch "x86_64"; then
+        echo "Detected non-x86_64 JDK while building x86_64. Downloading x64 JDK 17..."
         JDK_X64_DIR="$WORK_DIR/.jdk17_x64"
         mkdir -p "$JDK_X64_DIR"
+        tmp_tar=$(mktemp "$JDK_X64_DIR/jdk17_x64.XXXX.tar.gz")
+
+        download_jdk() {
+            local url="$1"
+            echo "Fetching JDK from $url"
+            if curl -fL --retry 5 --retry-delay 2 -o "$tmp_tar" "$url"; then
+                return 0
+            fi
+            return 1
+        }
+
+        # Primary (stable) URL, fallback to API endpoint if GitHub redirect changes.
+        if ! download_jdk "https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_mac_hotspot.tar.gz" \
+           && ! download_jdk "https://api.adoptium.net/v3/binary/latest/17/ga/mac/x64/jdk/hotspot/normal/eclipse"; then
+            echo "Failed to download x64 JDK 17" >&2
+            exit 1
+        fi
+
+        # Basic integrity check to avoid extracting HTML error pages.
+        if ! tar -tzf "$tmp_tar" >/dev/null 2>&1; then
+            echo "Downloaded JDK archive is not a valid tar.gz" >&2
+            exit 1
+        fi
+
         (
             cd "$JDK_X64_DIR"
-            curl -L -o jdk.tar.gz https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_mac_hotspot.tar.gz
-            tar -xzf jdk.tar.gz
+            tar -xzf "$tmp_tar"
         )
-        JAVA_HOME=$(find "$JDK_X64_DIR" -maxdepth 2 -type d -name "jdk-17*" | head -n1)
+
+        # Prefer macOS bundle layout .../jdk-17*.jdk/Contents/Home, but also
+        # handle tarballs that unpack to jdk-17*/ without the .jdk suffix.
+        JDK_ROOT=$(find "$JDK_X64_DIR" -maxdepth 2 -type d -name "jdk-17*" | head -n1)
+        CANDIDATE_HOME=""
+        if [ -n "$JDK_ROOT" ] && [ -d "$JDK_ROOT/Contents/Home" ]; then
+            CANDIDATE_HOME="$JDK_ROOT/Contents/Home"
+        elif [ -n "$JDK_ROOT" ] && [ -x "$JDK_ROOT/bin/java" ]; then
+            CANDIDATE_HOME="$JDK_ROOT"
+        else
+            CANDIDATE_HOME=$(find "$JDK_X64_DIR" -maxdepth 4 -type d -path "*/Contents/Home" | head -n1)
+        fi
+
+        if [ -z "$CANDIDATE_HOME" ] || [ ! -x "$CANDIDATE_HOME/bin/java" ]; then
+            echo "Could not locate extracted JDK 17 Home in $JDK_X64_DIR" >&2
+            exit 1
+        fi
+
+        JAVA_HOME="$CANDIDATE_HOME"
         export JAVA_HOME
         export PATH="$JAVA_HOME/bin:$PATH"
         echo "Switched JAVA_HOME to $JAVA_HOME"
+    fi
+fi
+
+# For arm64 builds ensure JAVA_HOME actually contains arm64 binaries; otherwise subtle
+# failures show up during Ant bundling. We don't auto-download here because GH runners
+# already provide arm64 JDKs, but we fail fast with a clear message.
+if [ "${TARGETARCH}" = "arm64" ]; then
+    if ! ensure_java_arch "arm64"; then
+        echo "Detected non-arm64 JDK while building arm64. Set JAVA_HOME to an arm64 JDK." >&2
+        exit 1
     fi
 fi
 
@@ -78,8 +156,19 @@ if [ ${TARGETARCH} == 'amd64' ]; then
 else
     cmake -G "Ninja" -DPROJECT_ARCH="arm64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
 fi
-# Build native part using ninja.
-ninja -j4
+# Build native part using ninja and stop immediately if it fails. Capture the
+# full log so CI artifacts can surface the failing command; verbosity is
+# controlled by optional env vars.
+export NINJA_STATUS=${NINJA_STATUS:-""}
+NINJA_FLAGS=${NINJA_FLAGS:-""}
+mkdir -p "$WORK_DIR/out"
+NINJA_LOG="$WORK_DIR/out/ninja_macos_${TARGETARCH}.log"
+
+if ! ninja $NINJA_FLAGS -j4 2>&1 | tee "$NINJA_LOG"; then
+    echo "Ninja build failed; aborting macOS packaging." >&2
+    echo "See log: $NINJA_LOG" >&2
+    exit 1
+fi
 
 #Generate distribution
 cd ../tools
