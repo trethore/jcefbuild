@@ -76,9 +76,16 @@ chmod +x make_distrib.sh
 
 #Pack binary_distrib
 cd ../binary_distrib/linux64
-if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux64/libcef.so) fi
+if [ "${BUILD_TYPE}" = "Release" ]; then
+    echo "Stripping binary..."
+    strip bin/lib/linux64/libcef.so
+fi
 #Replace natives on arm64
-if [ ${TARGETARCH} == 'arm64' ]; then (rm bin/gluegen-rt-natives* && rm bin/jogl-all-natives* && cp /natives/gluegen-rt-natives-linux-aarch64.jar bin && cp /natives/jogl-all-natives-linux-aarch64.jar bin) fi
+if [ "${TARGETARCH}" = "arm64" ]; then
+    rm bin/gluegen-rt-natives* bin/jogl-all-natives*
+    cp /natives/gluegen-rt-natives-linux-aarch64.jar bin
+    cp /natives/jogl-all-natives-linux-aarch64.jar bin
+fi
 
 #Export binaries
 tar -czvf ../../binary_distrib.tar.gz *
