@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+cd "$( dirname "$0" )"
+WORK_DIR=$(pwd)
+
+source "$WORK_DIR/scripts/net_retry.sh"
+
 # Fail fast on invalid invocation so subsequent commands don't mask the problem.
 if [ $# -lt 2 ] || [ $# -eq 3 ]
   then
@@ -17,9 +22,6 @@ if [ $# -lt 2 ] || [ $# -eq 3 ]
     echo "applekeyissuer: uuid of your apple api key issuer"
     exit 1
 fi
-
-cd "$( dirname "$0" )"
-WORK_DIR=$(pwd)
 
 TARGETARCH=$1
 BUILD_TYPE=$2
@@ -38,7 +40,7 @@ echo "Building for architecture $TARGETARCH"
 if [ ! -f "jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf jcef
-    git clone ${REPO} jcef
+    retry 3 git clone "${REPO}" jcef
     cd jcef
     git checkout ${REF}
     #No CMakeLists patching required on macos, as we do not add any new platforms
@@ -84,10 +86,7 @@ if [ "${TARGETARCH}" = "amd64" ]; then
         download_jdk() {
             local url="$1"
             echo "Fetching JDK from $url"
-            if curl -fL --retry 5 --retry-delay 2 -o "$tmp_tar" "$url"; then
-                return 0
-            fi
-            return 1
+            fetch_with_retry "$tmp_tar" "$url"
         }
 
         # Primary (stable) URL, fallback to API endpoint if GitHub redirect changes.

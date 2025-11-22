@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+source "$(dirname "$0")/net_retry.sh"
+
 # Determine architecture
 echo "Building for architecture ${TARGETARCH}"
 if [ "${TARGETARCH}" != "amd64" ] && [ "${TARGETARCH}" != "arm64" ]; then
@@ -28,8 +30,8 @@ echo "-------------------------------------"
 if [ ! -f "/jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf /jcef
-    git clone --filter=blob:none --depth 1 --no-tags "${REPO}" /jcef
-    git -C /jcef fetch --depth 1 origin "${REF}"
+    retry 3 git clone --filter=blob:none --depth 1 --no-tags "${REPO}" /jcef
+    retry 3 git -C /jcef fetch --depth 1 origin "${REF}"
     git -C /jcef checkout FETCH_HEAD
     cd /jcef
 else
