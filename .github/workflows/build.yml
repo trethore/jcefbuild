@@ -6,7 +6,7 @@ on:
       repo:
         description: 'Git repository to clone'
         required: true
-        default: 'https://github.com/trethore/java-chromium-embedded-framework.git'
+        default: 'https://github.com/trethore/java-cef.git'
       ref:
         description: 'Git commit id to checkout'
         required: true
