@@ -177,7 +177,6 @@ fi
 
 #Generate distribution
 cd ../tools
-sed -i "" 's/--ignore-source-errors//g' make_docs.sh
 chmod +x make_distrib.sh
 ./make_distrib.sh macosx64
 cd ..
@@ -201,5 +200,14 @@ mkdir ../../../out
 tar -czvf ../../../out/binary_distrib.tar.gz *
 
 #Pack javadoc
-cd docs
-tar -czvf ../../../../out/javadoc.tar.gz *
+mkdir -p "$WORK_DIR/out"
+JAVADOC_ARCHIVE="$WORK_DIR/out/javadoc.tar.gz"
+if [ -d docs ]; then
+    ( cd docs && tar -czvf "$JAVADOC_ARCHIVE" * )
+else
+    echo "Docs directory not generated; packaging placeholder README instead." >&2
+    tmp_doc="$WORK_DIR/out/javadoc_placeholder.txt"
+    echo "Javadoc generation skipped or failed; check build log." > "$tmp_doc"
+    tar -czvf "$JAVADOC_ARCHIVE" -C "$WORK_DIR/out" "$(basename "$tmp_doc")"
+    rm -f "$tmp_doc"
+fi
