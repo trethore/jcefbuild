@@ -27,7 +27,7 @@ TARGETARCH=$1
 BUILD_TYPE=$2
 if [ $# -lt 4 ]
   then
-    REPO=https://github.com/trethore/java-chromium-embedded-framework.git
+    REPO=https://github.com/trethore/java-cef.git
     REF=master
 else
     REPO=$3

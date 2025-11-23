@@ -32,7 +32,7 @@ case "$ARCH" in
 esac
 PLATFORM="linux/$ARCH"
 BUILD_TYPE="$2"
-DEFAULT_REPO="https://github.com/trethore/java-chromium-embedded-framework.git"
+DEFAULT_REPO="https://github.com/trethore/java-cef.git"
 DEFAULT_REF="master"
 
 if [ $# -eq 2 ]; then

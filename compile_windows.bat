@@ -20,7 +20,7 @@ if /I not "%ARCH%"=="amd64" if /I not "%ARCH%"=="arm64" (
 )
 
 :: Determine repository and ref to pull from
-if "%~3"=="" (set "REPO=https://github.com/trethore/java-chromium-embedded-framework.git") else (set "REPO=%~3")
+if "%~3"=="" (set "REPO=https://github.com/trethore/java-cef.git") else (set "REPO=%~3")
 if "%~4"=="" (set "REF=master") else (set "REF=%~4")
 
 :: Execute build with windows Dockerfile (no cache to avoid stale VS/SDK layers)
