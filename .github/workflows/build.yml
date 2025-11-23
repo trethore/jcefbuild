@@ -160,12 +160,15 @@ jobs:
           chmod +x scripts/install_macos_dependencies.sh
           ./scripts/install_macos_dependencies.sh
 
-      - name: Set up Java
+      - name: Install pkg JDK 17 (Temurin)
         if: ${{ matrix.family == 'macos' }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'microsoft'
+        run: |
+          brew update
+          brew install --cask --no-quarantine temurin17
+          JAVA_HOME=$(/usr/libexec/java_home -v 17)
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "JDK_17=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "Using JAVA_HOME=$JAVA_HOME"
 
       - name: Set up Python
         if: ${{ matrix.family == 'macos' }}
