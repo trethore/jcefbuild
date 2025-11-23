@@ -149,11 +149,18 @@ if [ ! -d "jcef_build" ]; then
 fi
 cd jcef_build
 
+# Resolve the macOS SDK path for consistent cross-arch builds (ignore errors on old/Xcode-less hosts).
+MACOS_SYSROOT=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)
+COMMON_CMAKE_ARGS=()
+if [ -n "$MACOS_SYSROOT" ]; then
+    COMMON_CMAKE_ARGS+=(-DCMAKE_OSX_SYSROOT="$MACOS_SYSROOT")
+fi
+
 # MacOS: Generate amd64/arm64 Makefiles.
 if [ ${TARGETARCH} == 'amd64' ]; then
-    cmake -G "Ninja" -DPROJECT_ARCH="x86_64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+    cmake -G "Ninja" -DPROJECT_ARCH="x86_64" -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} "${COMMON_CMAKE_ARGS[@]}" ..
 else
-    cmake -G "Ninja" -DPROJECT_ARCH="arm64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+    cmake -G "Ninja" -DPROJECT_ARCH="arm64" -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} "${COMMON_CMAKE_ARGS[@]}" ..
 fi
 # Build native part using ninja and stop immediately if it fails. Capture the
 # full log so CI artifacts can surface the failing command; verbosity is
