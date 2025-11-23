@@ -89,9 +89,8 @@ if [ "${TARGETARCH}" = "amd64" ]; then
             fetch_with_retry "$tmp_tar" "$url"
         }
 
-        # Primary (stable) URL, fallback to API endpoint if GitHub redirect changes.
-        if ! download_jdk "https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_mac_hotspot.tar.gz" \
-           && ! download_jdk "https://api.adoptium.net/v3/binary/latest/17/ga/mac/x64/jdk/hotspot/normal/eclipse"; then
+        # Use Adoptium API endpoint; the GitHub redirect URL is no longer stable.
+        if ! download_jdk "https://api.adoptium.net/v3/binary/latest/17/ga/mac/x64/jdk/hotspot/normal/eclipse"; then
             echo "Failed to download x64 JDK 17" >&2
             exit 1
         fi
