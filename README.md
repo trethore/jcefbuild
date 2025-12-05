@@ -1,49 +1,51 @@
 <div id="title" align="center">
 <h1>JCEF BUILD</h1>
-<a href="../../releases/latest"><img alt="build-all" src="../../actions/workflows/build-all.yml/badge.svg"></img></a>
+<a href="../../releases/latest"><img alt="build" src="../../actions/workflows/build.yml/badge.svg"></img></a>
 
 <h4>Independent project to produce binary artifacts for the JCef project</h4>
-<h6>Visit the JCEF repo at <a href="https://bitbucket.org/chromiumembedded/java-cef/src/master/">bitbucket</a> or <a href="https://github.com/chromiumembedded/java-cef">github</a> </h6>
+<h6>Visit the JCEF repo at <a href="https://github.com/trethore/java-cef">
+github.com/trethore/java-cef</a></h6>
 
-<h6>Consider using these builds with Maven or Gradle: <a href="https://github.com/jcefmaven/jcefmaven">jcefmaven</a></h6>
+<h6>Consider using these builds with Maven or Gradle: <a href="https://github.com/jcefmaven/jcefmaven">
+jcefmaven</a></h6>
 
 ### Build Specs:
 
 <table>
   <tr>
     <td width="12%"></td>
-    <td width="22%"><a href="#"><img src="https://raw.githubusercontent.com/simple-icons/simple-icons/ce334b5bda8d8d054cfde7ce35caf40651078a28/icons/linux.svg" alt="linux" width="32" height="32"></a><br/><b>amd64, arm64 & arm</b></td>
-    <td width="22%"><a href="#"><img src="https://raw.githubusercontent.com/simple-icons/simple-icons/ce334b5bda8d8d054cfde7ce35caf40651078a28/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>amd64 & i386</b></td>
-    <td width="22%"><a href="#"><img src="https://raw.githubusercontent.com/simple-icons/simple-icons/ce334b5bda8d8d054cfde7ce35caf40651078a28/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>arm64</b></td>
-    <td width="22%"><a href="#"><img src="https://raw.githubusercontent.com/simple-icons/simple-icons/ce334b5bda8d8d054cfde7ce35caf40651078a28/icons/apple.svg" alt="apple" width="32" height="32"></a><br/><b>amd64 & arm64</b></td>
+    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/linux.svg" alt="linux" width="32" height="32"></a><br/><b>amd64 & arm64</b></td>
+    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>amd64</b></td>
+    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/windows.svg" alt="windows" width="32" height="32"></a><br/><b>arm64</b></td>
+    <td width="22%"><a href="#"><img src="https://simpleicons.org/icons/apple.svg" alt="apple" width="32" height="32"></a><br/><b>amd64 & arm64</b></td>
   </tr>
   <tr>
     <td><b>Java</b></td>
-    <td>OpenJDK 11</td>
-    <td>Oracle JDK 8</td>
-    <td>Microsoft JDK 11</td>
-    <td>Temurin JDK 8</td>
+    <td>OpenJDK 17</td>
+    <td>Microsoft OpenJDK 17</td>
+    <td>Microsoft OpenJDK 17</td>
+    <td>JDK 17 (setup-java on macos-latest)</td>
   </tr>
   <tr>
     <td><b>Compiler</b></td>
-    <td>GCC 10</td>
-    <td>VS 2019</td>
-    <td>VS 2019</td>
-    <td>Xcode 13</td>
+    <td>GCC 12 (Debian bookworm)</td>
+    <td>Visual Studio 2022 Build Tools + Windows 11 SDK 26100</td>
+    <td>Visual Studio 2022 Build Tools + Windows 11 SDK 26100</td>
+    <td>Xcode (macos-latest runners, currently 15.x)</td>
   </tr>
   <tr>
     <td><b>Build</b></td>
-    <td>Python 3.7; <code>ninja</code></td>
-    <td>Python 3.7; <code>ninja</code></td>
-    <td>Python 3.7; <code>ninja</code></td>
-    <td>Python 2.7; <code>ninja</code>; SDK10.13</td>
+    <td>Python 3.11; <code>ninja</code></td>
+    <td>Python 3.11; <code>ninja</code></td>
+    <td>Python 3.11; <code>ninja</code></td>
+    <td>Python 3.10; <code>ninja</code>; macOS SDK from macos-latest (macOS 14)</td>
   </tr>
   <tr>
     <td><b>Limitations</b></td>
     <td>-</td>
     <td>-</td>
     <td>No OSR mode (no Jogamp)</td>
-    <td>Needs <a href="https://bitbucket.org/chromiumembedded/java-cef/issues/109/">custom structure</a> to run outside of a bundle</td>
+    <td>Needs <a href="https://github.com/trethore/java-cef/wiki/Custom-Structure">custom structure</a> to run outside of a bundle</td>
   </tr>
 </table>
 
@@ -52,18 +54,24 @@
 ---
 
 ## Downloading artifacts
+
 You can find the most recent versions of the artifacts on the [releases](../../releases) page of this repository.
 
 ## Building your own projects
+
 You have multiple options to build your own project using this repository. They are listed below.
 
 ### Building another git repo using GitHub Actions
-To build another git repo, simply fork this repository. Then go to the "Actions" tab of your forked repository,
-activate the workflows and manually run the `build-all` (or `build-<platform>`) workflow with your repository and commit id/branch specified.
-This will trigger a build of your desired repository and platforms.
-To produce a build for MacOS, you will need to specify your code signing information or remove the signing and notarization steps from the action workflows.
 
-Required Actions Secrets for signing and notarization:
+To build another git repo, simply fork this repository. Then go to the "Actions" tab of your forked repository,
+activate the workflows and manually run the `build` workflow with your repository and commit id/branch specified. Use
+the optional `targets` input to limit the matrix (e.g. `linux-amd64,windows-amd64`) or leave it as `all` to build every
+supported platform, and enable `publish_release` if you want the workflow to publish the resulting artifacts to a
+GitHub release.
+Mac builds are produced unsigned by default. Set the `sign_macos` workflow input to `true` and provide the credentials
+below if you need signed and notarized artifacts.
+
+Optional Actions Secrets for signing and notarization (required when `sign_macos=true`):
 
 +`APPLE_API_KEY_BASE64`: Your API key to access the Apple Notarization Service (in base64)
 +`APPLE_API_KEY_ISSUER`: UUID of issuer (can be found along with your generated key in Apple Dev Console)
@@ -75,22 +83,35 @@ Required Actions Secrets for signing and notarization:
 +`APPLE_KEYCHAIN_PASSWORD`: A random password to use for the keychain on the runner
 +`APPLE_TEAM_NAME`: Your apple team name, part of the certificate name (10 digit id in brackets)`
 
-You can obtain the api key [here](https://appstoreconnect.apple.com/access/api) (make sure key has developer access) and the certificate [here](https://developer.apple.com/account/resources/certificates/list) (choose Developer ID Application).
+You can obtain the api key [here](https://appstoreconnect.apple.com/access/api) (make sure key has developer access) and
+the certificate [here](https://developer.apple.com/account/resources/certificates/list) (choose Developer ID
+Application).
 
+## Thanks
+
+- Original build scripts and infrastructure by Friwi and
+  the [chromiumembedded/java-cef](https://github.com/chromiumembedded/java-cef) community.
+- Docker environment inspiration from the [jcefdocker](https://github.com/friwi/jcefdocker) project.
 
 ### Building locally
+
 To build locally, put your sources in the `jcef` directory of this repository, or leave it empty to clone a repository.
-On Windows and Linux, make sure you installed docker (NOT the Snap version!). On MacOS, make sure you installed the build dependencies specified
-[here](https://bitbucket.org/chromiumembedded/java-cef/wiki/BranchesAndBuilding) and `ninja`.
+On Windows and Linux, make sure you installed docker (NOT the Snap version!). On MacOS, make sure you installed the
+build dependencies specified
+[here](https://github.com/trethore/java-cef/wiki/BranchesAndBuilding) and `ninja`.
 
 Then execute `compile-<os>.<sh|bat> <arch> <buildType> [<gitrepo> <gitref>]`.
 Specify an architecture (docker architectures, see script source for options) and build type (Release or Debug).
 Optionally, you can specify a git repository and ref/branch to pull when no sources are present in the `jcef` folder.
 
 ## Reporting bugs
+
 Please only report bugs here that are related to the build process.
-Please report bugs in JCEF/CEF to the [corresponding repository on Bitbucket](https://bitbucket.org/chromiumembedded/).
+Please report bugs in JCEF/CEF to
+the [repositories on GitHub](https://github.com/trethore/java-cef/issues) or the
+upstream [chromiumembedded](https://github.com/chromiumembedded) project as appropriate.
 
 ## Contributing
-Feel free to open a pull request on this repository to improve its stability or artifact quality. Make sure to provide a valid GitHub Actions run for your pull requests to be accepted.
 
+Feel free to open a pull request on this repository to improve its stability or artifact quality. Make sure to provide a
+valid GitHub Actions run for your pull requests to be accepted.
