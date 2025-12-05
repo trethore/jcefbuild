@@ -43,7 +43,6 @@ jobs:
               {"id": "linux-amd64", "os": "ubuntu-latest", "family": "linux", "build_target": "amd64", "artifact": "linux-amd64.tar.gz", "qemu": False, "publish_javadoc": False},
               {"id": "linux-arm64", "os": "ubuntu-latest", "family": "linux", "build_target": "arm64", "artifact": "linux-arm64.tar.gz", "qemu": True, "publish_javadoc": False},
               {"id": "windows-amd64", "os": "windows-2022", "family": "windows", "build_target": "amd64", "artifact": "windows-amd64.tar.gz", "qemu": False, "publish_javadoc": False},
-              {"id": "windows-arm64", "os": "windows-2022", "family": "windows", "build_target": "arm64", "artifact": "windows-arm64.tar.gz", "qemu": False, "publish_javadoc": False},
               {"id": "macosx-amd64", "os": "macos-latest", "family": "macos", "build_target": "amd64", "artifact": "macosx-amd64.tar.gz", "qemu": False, "publish_javadoc": True},
               {"id": "macosx-arm64", "os": "macos-latest", "family": "macos", "build_target": "arm64", "artifact": "macosx-arm64.tar.gz", "qemu": False, "publish_javadoc": False},
           ]
@@ -61,7 +60,8 @@ jobs:
               target_map = {entry["id"]: entry for entry in targets}
               invalid = sorted({value for value in requested if value not in target_map})
               if invalid:
-                  print(f"Unknown targets: {', '.join(invalid)}", file=sys.stderr)
+                  supported = ", ".join(sorted(target_map))
+                  print(f"Unknown targets: {', '.join(invalid)}. Supported targets: {supported}", file=sys.stderr)
                   sys.exit(1)
               seen = set()
               for value in requested:
