@@ -26,9 +26,6 @@ rm -rf jcef/binary_distrib
 #Ensure build context always has a jcef dir
 mkdir -p jcef
 
-#Cache build image to not download it again each time (speedup for local builds)
-docker pull friwidev/jcefdocker:linux-latest
-
 #Execute buildx with linux dockerfile and output to current directory
 if [ $# -eq 2 ]
   then
