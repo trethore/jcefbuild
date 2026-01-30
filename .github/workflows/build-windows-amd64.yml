@@ -1,0 +1,31 @@
+name: build-windows-amd64
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'Git repository to clone'
+        required: true
+        default: 'https://bitbucket.org/chromiumembedded/java-cef.git'
+      ref:
+        description: 'Git commit id to checkout'
+        required: true
+        default: 'master'
+
+jobs:
+  build-windows-amd64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v3
+      -
+        name: Build
+        shell: cmd
+        run: |
+          compile_windows.bat amd64 Release ${{ github.event.inputs.repo }} ${{ github.event.inputs.ref }}
+      -
+        name: Export artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-amd64.tar.gz
+          path: out/binary_distrib.tar.gz
+
