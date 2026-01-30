@@ -1,0 +1,220 @@
+name: build
+
+on:
+  workflow_dispatch:
+    inputs:
+      jcef_repo:
+        description: "JCEF git repository to clone"
+        required: true
+        default: "https://github.com/trethore/jcef"
+      jcef_ref:
+        description: "JCEF git branch or commit"
+        required: true
+        default: "master"
+      platform:
+        description: "Target platform"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - linux-amd64
+          - linux-arm64
+          - macosx-amd64
+          - macosx-arm64
+          - windows-amd64
+      sign_macosx:
+        description: "Sign macosx builds"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Dry run (artifacts only, no release)"
+        type: boolean
+        default: true
+
+jobs:
+  set-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          case "${{ github.event.inputs.platform }}" in
+            all)
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}'
+              ;;
+            linux-amd64)
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}'
+              ;;
+            linux-arm64)
+              matrix='{"include":[{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"}]}'
+              ;;
+            macosx-amd64)
+              matrix='{"include":[{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"}]}'
+              ;;
+            macosx-arm64)
+              matrix='{"include":[{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"}]}'
+              ;;
+            windows-amd64)
+              matrix='{"include":[{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}'
+              ;;
+            *)
+              echo "Unknown platform input: ${{ github.event.inputs.platform }}"
+              exit 1
+              ;;
+          esac
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_tag_name: ${{ env.release_tag_name }}
+    steps:
+      - name: Checkout
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: actions/checkout@v3
+      - name: Generate release info
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd release_gen
+          chmod +x create_release_info.sh
+          ./create_release_info.sh ${{ github.event.inputs.jcef_repo }} ${{ github.event.inputs.jcef_ref }} https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} ${{ github.run_number }} ${{ github.repository }}
+      - name: Create Release
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          gh release create ${{ env.release_tag_name }} --title "${{ env.release_name }}" --notes-file release_gen/release_message.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add LICENSE
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          gh release upload ${{ env.release_tag_name }} release_gen/LICENSE
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add build_meta.json
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          gh release upload ${{ env.release_tag_name }} release_gen/build_meta.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Announce build_meta.json download url to other jobs
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd release_gen
+          chmod +x announce_build_meta.sh
+          ./announce_build_meta.sh ${{ github.repository }}
+
+  build:
+    name: build-${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    needs: [set-matrix, create-release]
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.set-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        if: ${{ matrix.runner == 'linux' }}
+        uses: docker/setup-qemu-action@master
+        with:
+          platforms: all
+      - name: Set up Docker Buildx
+        if: ${{ matrix.runner == 'linux' }}
+        uses: docker/setup-buildx-action@v2
+
+      - name: Setup environment
+        if: ${{ matrix.runner == 'macos' }}
+        run: |
+          chmod +x scripts/install_macos_dependencies.sh
+          ./scripts/install_macos_dependencies.sh
+      - name: Set up Java
+        if: ${{ matrix.runner == 'macos' }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: "8"
+          distribution: "corretto"
+      - name: Set up Python
+        if: ${{ matrix.runner == 'macos' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - name: Install Apple certificate
+        if: ${{ matrix.runner == 'macos' && github.event.inputs.sign_macosx == 'true' }}
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          APPLE_API_KEY_NAME: ${{ secrets.APPLE_API_KEY_NAME }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode --output $CERTIFICATE_PATH
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH -T /usr/bin/codesign
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          mkdir "${HOME}/private_keys"
+          echo -n "$APPLE_API_KEY_BASE64" | base64 --decode --output "${HOME}/private_keys/AuthKey_$APPLE_API_KEY_NAME.p8"
+
+      - name: Build (linux)
+        if: ${{ matrix.runner == 'linux' }}
+        run: |
+          chmod +x compile_linux.sh
+          ./compile_linux.sh ${{ matrix.arch }} Release ${{ github.event.inputs.jcef_repo }} ${{ github.event.inputs.jcef_ref }}
+      - name: Build (macos signed)
+        if: ${{ matrix.runner == 'macos' && github.event.inputs.sign_macosx == 'true' }}
+        run: |
+          chmod +x compile_macosx.sh
+          ./compile_macosx.sh ${{ matrix.arch }} Release ${{ github.event.inputs.jcef_repo }} ${{ github.event.inputs.jcef_ref }} "${{ secrets.APPLE_BUILD_CERTIFICATE_NAME }}" ${{ secrets.APPLE_TEAM_NAME }} ${{ secrets.APPLE_API_KEY_ID }} "${HOME}/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_NAME }}.p8" ${{ secrets.APPLE_API_KEY_ISSUER }}
+      - name: Build (macos unsigned)
+        if: ${{ matrix.runner == 'macos' && github.event.inputs.sign_macosx != 'true' }}
+        run: |
+          chmod +x compile_macosx.sh
+          ./compile_macosx.sh ${{ matrix.arch }} Release ${{ github.event.inputs.jcef_repo }} ${{ github.event.inputs.jcef_ref }}
+      - name: Clean up keychain
+        if: ${{ matrix.runner == 'macos' && github.event.inputs.sign_macosx == 'true' && always() }}
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+          rm -rf "${HOME}/private_keys"
+      - name: Build (windows)
+        if: ${{ matrix.runner == 'windows' }}
+        shell: cmd
+        run: |
+          compile_windows.bat ${{ matrix.arch }} Release ${{ github.event.inputs.jcef_repo }} ${{ github.event.inputs.jcef_ref }}
+
+      - name: Upload artifact
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: out/binary_distrib.tar.gz
+
+      - name: Export distribution (unix)
+        if: ${{ github.event.inputs.dry_run == 'false' && matrix.runner != 'windows' }}
+        run: |
+          mv out/binary_distrib.tar.gz out/${{ matrix.artifact }}
+          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/${{ matrix.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Export distribution (windows)
+        if: ${{ github.event.inputs.dry_run == 'false' && matrix.runner == 'windows' }}
+        shell: cmd
+        run: |
+          move out/binary_distrib.tar.gz out/${{ matrix.artifact }}
+          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/${{ matrix.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Export javadoc
+        if: ${{ github.event.inputs.dry_run == 'false' && matrix.platform == 'macosx-amd64' }}
+        run: |
+          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/javadoc.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

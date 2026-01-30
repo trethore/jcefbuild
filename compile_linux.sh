@@ -11,6 +11,8 @@ if [ $# -lt 2 ] || [ $# -eq 3 ]
     exit 1
 fi
 
+set -euo pipefail
+
 cd "$( dirname "$0" )"
 
 #Remove old build output
@@ -21,9 +23,8 @@ touch out/linux32/prebuilt.txt
 
 #Remove binary distribution if there was one built before (saves transfer of it to docker context)
 rm -rf jcef/binary_distrib
-
-#Cache build image to not download it again each time (speedup for local builds)
-docker pull friwidev/jcefdocker:linux-latest
+#Ensure build context always has a jcef dir
+mkdir -p jcef
 
 #Execute buildx with linux dockerfile and output to current directory
 if [ $# -eq 2 ]
@@ -43,6 +44,11 @@ else
     docker buildx build --no-cache --progress=plain --platform=linux/$1 --build-arg TARGETARCH=$1 --build-arg BUILD_TYPE=$2 --build-arg REPO=$3 --build-arg REF=$4 --file DockerfileLinux --output out .
 fi
 docker builder prune -f --filter "label=jcefbuild=true"
+
+if [ ! -f "out/binary_distrib.tar.gz" ]; then
+    echo "ERROR: out/binary_distrib.tar.gz not found after build." >&2
+    exit 1
+fi
 
 #Cleanup output dir
 rm -rf out/linux32
