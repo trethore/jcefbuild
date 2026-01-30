@@ -45,65 +45,37 @@ jobs:
         run: |
           case "${{ github.event.inputs.platform }}" in
             all)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[
-                {"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},
-                {"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},
-                {"platform":"linux-arm","os":"ubuntu-latest","runner":"linux","arch":"arm/v6","artifact":"linux-arm.tar.gz"},
-                {"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"},
-                {"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"},
-                {"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"},
-                {"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},
-                {"platform":"windows-i386","os":"windows-2022","runner":"windows","arch":"386","artifact":"windows-i386.tar.gz"}
-              ]}
-              JSON
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"linux-arm","os":"ubuntu-latest","runner":"linux","arch":"arm/v6","artifact":"linux-arm.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-i386","os":"windows-2022","runner":"windows","arch":"386","artifact":"windows-i386.tar.gz"}]}'
               ;;
             linux-amd64)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}'
               ;;
             linux-arm64)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"}]}'
               ;;
             linux-arm)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"linux-arm","os":"ubuntu-latest","runner":"linux","arch":"arm/v6","artifact":"linux-arm.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"linux-arm","os":"ubuntu-latest","runner":"linux","arch":"arm/v6","artifact":"linux-arm.tar.gz"}]}'
               ;;
             macosx-amd64)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"}]}'
               ;;
             macosx-arm64)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"}]}'
               ;;
             windows-arm64)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"}]}'
               ;;
             windows-amd64)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}'
               ;;
             windows-i386)
-              cat <<'JSON' > "$RUNNER_TEMP/matrix.json"
-              {"include":[{"platform":"windows-i386","os":"windows-2022","runner":"windows","arch":"386","artifact":"windows-i386.tar.gz"}]}
-              JSON
+              matrix='{"include":[{"platform":"windows-i386","os":"windows-2022","runner":"windows","arch":"386","artifact":"windows-i386.tar.gz"}]}'
               ;;
             *)
               echo "Unknown platform input: ${{ github.event.inputs.platform }}"
               exit 1
               ;;
           esac
-          matrix=$(tr -d '\n' < "$RUNNER_TEMP/matrix.json")
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   create-release:
