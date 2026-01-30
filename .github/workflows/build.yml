@@ -208,8 +208,8 @@ jobs:
         if: ${{ github.event.inputs.dry_run == 'false' && matrix.runner == 'windows' }}
         shell: cmd
         run: |
-          move out/binary_distrib.tar.gz out/${{ matrix.artifact }}
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/${{ matrix.artifact }}
+          move out\binary_distrib.tar.gz out\${{ matrix.artifact }}
+          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out\${{ matrix.artifact }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Export javadoc
