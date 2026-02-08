@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -lt 2 ] || [ $# -eq 3 ]
+if [ $# -ne 2 ] && [ $# -ne 4 ] && [ $# -ne 9 ]
   then
     echo "Usage: ./compile_macosx.sh <architecture> <buildType> [<gitrepo> <gitref>] [<certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>]"
     echo ""
@@ -15,6 +15,8 @@ if [ $# -lt 2 ] || [ $# -eq 3 ]
     echo "applekeyissuer: uuid of your apple api key issuer"
     exit 1
 fi
+
+set -euo pipefail
 
 cd "$( dirname "$0" )"
 WORK_DIR=$(pwd)
@@ -36,9 +38,9 @@ echo "Building for architecture $TARGETARCH"
 if [ ! -f "jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf jcef
-    git clone ${REPO} jcef
+    git clone "${REPO}" jcef
     cd jcef
-    git checkout ${REF}
+    git checkout "${REF}"
     #No CMakeLists patching required on macos, as we do not add any new platforms
 else
     echo "Found existing files to build"
@@ -54,17 +56,20 @@ fi
 cd jcef_build
 
 # MacOS: Generate amd64/arm64 Makefiles.
-if [ ${TARGETARCH} == 'amd64' ]; then
-    cmake -G "Ninja" -DPROJECT_ARCH="x86_64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+if [ "${TARGETARCH}" == 'amd64' ]; then
+    cmake -G "Ninja" -DPROJECT_ARCH="x86_64" -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" ..
 else
-    cmake -G "Ninja" -DPROJECT_ARCH="arm64" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+    cmake -G "Ninja" -DPROJECT_ARCH="arm64" -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" ..
 fi
 # Build native part using ninja.
 ninja -j4
 
 #Generate distribution
 cd ../tools
-sed -i "" 's/--ignore-source-errors//g' make_docs.sh
+python3 "${WORK_DIR}/scripts/patch_jcef_tools.py" "$(pwd)"
+if [ -f make_docs.sh ]; then
+    sed -i "" 's/--ignore-source-errors//g' make_docs.sh
+fi
 chmod +x make_distrib.sh
 ./make_distrib.sh macosx64
 cd ..
@@ -73,8 +78,8 @@ cd ..
 cd binary_distrib/macosx64
 if [ $# -gt 4 ]
   then
-    chmod +x $WORK_DIR/macosx_codesign.sh
-    bash $WORK_DIR/macosx_codesign.sh $(pwd) "$5" $6 $7 $8 $9
+    chmod +x "${WORK_DIR}/macosx_codesign.sh"
+    bash "${WORK_DIR}/macosx_codesign.sh" "$(pwd)" "$5" "$6" "$7" "$8" "$9"
     retVal=$?
     if [ $retVal -ne 0 ]; then
         echo "Binaries are not correctly signed"
@@ -83,10 +88,17 @@ if [ $# -gt 4 ]
 fi
 
 #Pack binary_distrib
-rm -rf ../../../out
-mkdir ../../../out
-tar -czvf ../../../out/binary_distrib.tar.gz *
+OUT_DIR="${WORK_DIR}/out"
+rm -rf "${OUT_DIR}"
+mkdir "${OUT_DIR}"
+tar -czvf "${OUT_DIR}/binary_distrib.tar.gz" *
 
 #Pack javadoc
-cd docs
-tar -czvf ../../../../out/javadoc.tar.gz *
+if [ -d docs ]; then
+    tar -czvf "${OUT_DIR}/javadoc.tar.gz" -C docs .
+elif [ -d ../../out/docs ]; then
+    tar -czvf "${OUT_DIR}/javadoc.tar.gz" -C ../../out/docs .
+else
+    echo "ERROR: javadoc docs directory not found (expected binary_distrib/macosx64/docs or out/docs)." >&2
+    exit 1
+fi

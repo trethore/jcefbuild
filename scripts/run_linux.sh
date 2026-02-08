@@ -71,6 +71,7 @@ fi
 set -e
 
 #Generate distribution
+python3 /builder/patch_jcef_tools.py "$(pwd)"
 chmod +x make_distrib.sh
 if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
     ./make_distrib.sh linux64
