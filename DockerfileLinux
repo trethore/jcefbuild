@@ -27,8 +27,6 @@ WORKDIR /builder
 COPY jcef /jcef
 #Copy prebuild classes, if any
 COPY out/linux32 /prebuild
-#Copy additional natives
-COPY natives /natives
 
 #Copy cmake patching script
 COPY scripts/patch_cmake.py .
