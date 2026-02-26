@@ -49,12 +49,6 @@ codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME/Chromium Embedded Framework"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/Contents/Java/libjcef.dylib"
-bash macosx_codesign_zip.sh "$APP_DIR/$APP_NAME/Contents/Java/gluegen-rt-natives-macosx-universal.jar" "natives/macosx-universal/libgluegen_rt.dylib" "$2"
-bash macosx_codesign_zip.sh "$APP_DIR/$APP_NAME/Contents/Java/jogl-all-natives-macosx-universal.jar" "natives/macosx-universal/libnativewindow_awt.dylib" "$2"
-bash macosx_codesign_zip.sh "$APP_DIR/$APP_NAME/Contents/Java/jogl-all-natives-macosx-universal.jar" "natives/macosx-universal/libnativewindow_macosx.dylib" "$2"
-bash macosx_codesign_zip.sh "$APP_DIR/$APP_NAME/Contents/Java/jogl-all-natives-macosx-universal.jar" "natives/macosx-universal/libjogl_mobile.dylib" "$2"
-bash macosx_codesign_zip.sh "$APP_DIR/$APP_NAME/Contents/Java/jogl-all-natives-macosx-universal.jar" "natives/macosx-universal/libnewt_head.dylib" "$2"
-bash macosx_codesign_zip.sh "$APP_DIR/$APP_NAME/Contents/Java/jogl-all-natives-macosx-universal.jar" "natives/macosx-universal/libjogl_desktop.dylib" "$2"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/Contents/MacOS/JavaAppLauncher"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME"
 bash macosx_notarize.sh "$APP_DIR/$APP_NAME" "$2" $3 org.jcef.jcef $4 $5 $6
