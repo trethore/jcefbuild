@@ -21,7 +21,7 @@ if ("%4"=="") (set "REF=master") ^
 else (set "REF=%4")
 
 :: Execute build with windows Dockerfile
-docker build -t jcefbuild --file DockerfileWindows .
+docker build -t jcefbuild --build-arg TARGETARCH=%1 --file DockerfileWindows .
 if errorlevel 1 exit /b %errorlevel%
 
 :: Execute run with windows Dockerfile

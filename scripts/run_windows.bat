@@ -30,10 +30,11 @@ if not defined VCVARS_BAT (
     exit /b 1
 )
 
-if not exist "%VCVARS_BAT%" (
-    echo ERROR: Required Visual Studio environment script not found: %VCVARS_BAT%
-    exit /b 1
-)
+if exist "%VCVARS_BAT%" goto :VCVARS_READY
+echo ERROR: Required Visual Studio environment script not found: %VCVARS_BAT%
+exit /b 1
+
+:VCVARS_READY
 
 :: Update ssl certs
 certutil -generateSSTFromWU roots.sst && certutil -addstore -f root roots.sst && del roots.sst
