@@ -13,6 +13,7 @@ RUN choco config set cachelocation C:\chococache
 
 RUN choco install jdk8 -params "both=true" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
 RUN choco install microsoft-openjdk11 --params "'INSTALLDIR=C:\jdk-11'" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
+RUN if /I "%TARGETARCH%"=="arm64" powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://aka.ms/download-jdk/microsoft-jdk-11-windows-aarch64.zip' -OutFile 'C:\microsoft-jdk-11-windows-aarch64.zip'; Expand-Archive -Path 'C:\microsoft-jdk-11-windows-aarch64.zip' -DestinationPath 'C:\jdk-11-arm64-tmp'; $jdkDir = (Get-ChildItem 'C:\jdk-11-arm64-tmp' | Select-Object -First 1).FullName; Move-Item -Path $jdkDir -Destination 'C:\jdk-11-arm64'; Remove-Item 'C:\microsoft-jdk-11-windows-aarch64.zip' -Force; Remove-Item 'C:\jdk-11-arm64-tmp' -Recurse -Force"
 RUN choco install cmake.install --version=3.19 --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
 RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
 RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
