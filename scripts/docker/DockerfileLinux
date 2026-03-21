@@ -1,6 +1,3 @@
-#This file is used to build java classes for ARMv6 distributions before actually running on ARMv6
-#This is needed as compilation fails on ARMv6 for some yet unknown reasons (libraries do not get detected there)
-
 FROM debian:bullseye AS stage
 
 LABEL jcefbuild=true
@@ -18,7 +15,7 @@ RUN ln -sf /usr/arm-linux-gnueabihf/lib/ld-linux-armhf.so.3 /usr/lib/ld-linux-ar
 #Declare build type argument (Release or Debug)
 ARG BUILD_TYPE
 
-#Declare architecture argument (arm64, 386 or amd64)
+#Declare architecture argument (arm64, arm/v6, 386 or amd64)
 ARG TARGETARCH
 
 #Declare git args
@@ -28,12 +25,23 @@ ARG REF
 WORKDIR /builder
 #Copy existing sources, if any
 COPY jcef /jcef
+#Copy prebuild classes, if any
+COPY out/linux32 /prebuild
+
+#Copy cmake patching script
+COPY scripts/patch/patch_cmake.py .
+COPY scripts/patch/patch_jcef_tools.py .
+COPY patch/CMakeLists.txt.patch .
 
 #Copy and launch run script
-COPY scripts/run_linux_prebuild.sh .
-RUN chmod +x run_linux_prebuild.sh
-RUN ./run_linux_prebuild.sh
+COPY scripts/run/run_linux.sh .
+RUN chmod +x run_linux.sh
+RUN ./run_linux.sh
 
 #Export built files
 FROM scratch AS export-stage
-COPY --from=stage /jcef/out/linux32 linux32
+COPY --from=stage /jcef/binary_distrib.tar.gz .
+#COPY --from=stage /jcef/target target
+#COPY --from=stage /jcef/third_party third_party
+#COPY --from=stage /jcef/buildtools buildtools
+#COPY --from=stage /jcef/jcef_build jcef_build

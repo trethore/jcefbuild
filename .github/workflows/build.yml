@@ -135,8 +135,8 @@ jobs:
       - name: Setup environment
         if: ${{ matrix.runner == 'macos' }}
         run: |
-          chmod +x scripts/install_macos_dependencies.sh
-          ./scripts/install_macos_dependencies.sh
+          chmod +x scripts/macos/install_macos_dependencies.sh
+          ./scripts/macos/install_macos_dependencies.sh
       - name: Set up Java
         if: ${{ matrix.runner == 'macos' }}
         uses: actions/setup-java@v5
@@ -171,18 +171,18 @@ jobs:
       - name: Build (linux)
         if: ${{ matrix.runner == 'linux' }}
         run: |
-          chmod +x compile_linux.sh
-          ./compile_linux.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          chmod +x scripts/compile/compile_linux.sh
+          ./scripts/compile/compile_linux.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
       - name: Build (macos signed)
         if: ${{ matrix.runner == 'macos' && inputs.sign_macosx }}
         run: |
-          chmod +x compile_macosx.sh
-          ./compile_macosx.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }} "${{ secrets.APPLE_BUILD_CERTIFICATE_NAME }}" ${{ secrets.APPLE_TEAM_NAME }} ${{ secrets.APPLE_API_KEY_ID }} "${HOME}/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_NAME }}.p8" ${{ secrets.APPLE_API_KEY_ISSUER }}
+          chmod +x scripts/compile/compile_macosx.sh
+          ./scripts/compile/compile_macosx.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }} "${{ secrets.APPLE_BUILD_CERTIFICATE_NAME }}" ${{ secrets.APPLE_TEAM_NAME }} ${{ secrets.APPLE_API_KEY_ID }} "${HOME}/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_NAME }}.p8" ${{ secrets.APPLE_API_KEY_ISSUER }}
       - name: Build (macos unsigned)
         if: ${{ matrix.runner == 'macos' && !inputs.sign_macosx }}
         run: |
-          chmod +x compile_macosx.sh
-          ./compile_macosx.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          chmod +x scripts/compile/compile_macosx.sh
+          ./scripts/compile/compile_macosx.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
       - name: Clean up keychain
         if: ${{ matrix.runner == 'macos' && inputs.sign_macosx && always() }}
         run: |
@@ -192,7 +192,7 @@ jobs:
         if: ${{ matrix.runner == 'windows' }}
         shell: cmd
         run: |
-          compile_windows.bat ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          scripts\compile\compile_windows.bat ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
 
       - name: Upload artifact
         if: ${{ inputs.dry_run }}

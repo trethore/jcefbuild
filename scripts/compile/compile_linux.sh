@@ -1,8 +1,7 @@
 #!/bin/bash
 
-if [ $# -lt 2 ] || [ $# -eq 3 ]
-  then
-    echo "Usage: ./compile_linux.sh <architecture> <buildType> [<gitrepo> <gitref>]"
+if [ $# -lt 2 ] || [ $# -eq 3 ]; then
+    echo "Usage: ./scripts/compile/compile_linux.sh <architecture> <buildType> [<gitrepo> <gitref>]"
     echo ""
     echo "architecture: the target architecture to build for. Architectures are either arm64, arm/v6 or amd64."
     echo "buildType: either Release or Debug"
@@ -13,7 +12,20 @@ fi
 
 set -euo pipefail
 
-cd "$( dirname "$0" )"
+SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
+
+TARGETARCH=$1
+BUILD_TYPE=$2
+if [ $# -eq 2 ]; then
+    REPO=https://bitbucket.org/chromiumembedded/java-cef.git
+    REF=master
+else
+    REPO=$3
+    REF=$4
+fi
+
+cd "${ROOT_DIR}"
 
 #Remove old build output
 rm -rf out
@@ -27,22 +39,12 @@ rm -rf jcef/binary_distrib
 mkdir -p jcef
 
 #Execute buildx with linux dockerfile and output to current directory
-if [ $# -eq 2 ]
-  then
-    if [ $1 == "arm/v6" ]
-      then
-        rm -rf out/linux32
-        docker buildx build --no-cache --progress=plain --platform=linux/386 --build-arg TARGETARCH=386 --build-arg BUILD_TYPE=$2 --build-arg REPO=https://bitbucket.org/chromiumembedded/java-cef.git --build-arg REF=master --file DockerfileLinuxARMPrebuild --output out .
-    fi
-    docker buildx build --no-cache --progress=plain --platform=linux/$1 --build-arg TARGETARCH=$1 --build-arg BUILD_TYPE=$2 --build-arg REPO=https://bitbucket.org/chromiumembedded/java-cef.git --build-arg REF=master --file DockerfileLinux --output out .
-else
-    if [ $1 == "arm/v6" ]
-      then
-        rm -rf out/linux32
-        docker buildx build --no-cache --progress=plain --platform=linux/386 --build-arg TARGETARCH=386 --build-arg BUILD_TYPE=$2 --build-arg REPO=$3 --build-arg REF=$4 --file DockerfileLinuxARMPrebuild --output out .
-    fi
-    docker buildx build --no-cache --progress=plain --platform=linux/$1 --build-arg TARGETARCH=$1 --build-arg BUILD_TYPE=$2 --build-arg REPO=$3 --build-arg REF=$4 --file DockerfileLinux --output out .
+if [ "${TARGETARCH}" = "arm/v6" ]; then
+    rm -rf out/linux32
+    docker buildx build --no-cache --progress=plain --platform=linux/386 --build-arg TARGETARCH=386 --build-arg BUILD_TYPE="${BUILD_TYPE}" --build-arg REPO="${REPO}" --build-arg REF="${REF}" --file scripts/docker/DockerfileLinuxARMPrebuild --output out .
 fi
+
+docker buildx build --no-cache --progress=plain --platform=linux/"${TARGETARCH}" --build-arg TARGETARCH="${TARGETARCH}" --build-arg BUILD_TYPE="${BUILD_TYPE}" --build-arg REPO="${REPO}" --build-arg REF="${REF}" --file scripts/docker/DockerfileLinux --output out .
 docker builder prune -f --filter "label=jcefbuild=true"
 
 if [ ! -f "out/binary_distrib.tar.gz" ]; then

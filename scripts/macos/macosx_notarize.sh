@@ -5,7 +5,7 @@
 
 if [ $# -lt 7 ]
   then
-    echo "Usage: ./macosx_notarize.sh <path> <certname> <teamname> <bundleid> <applekeyid> <applekeypath> <applekeyissuer>"
+    echo "Usage: ./scripts/macos/macosx_notarize.sh <path> <certname> <teamname> <bundleid> <applekeyid> <applekeypath> <applekeyissuer>"
     echo ""
     echo "path: the absolute(!) target path"
     echo "certname: the apple signing certificate name. Something like \"Developer ID Application: xxx (yyy)\""

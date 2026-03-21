@@ -1,8 +1,7 @@
 #!/bin/bash
 
-if [ $# -lt 6 ]
-  then
-    echo "Usage: ./macosx_codesign.sh <path> <certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>"
+if [ $# -lt 6 ]; then
+    echo "Usage: ./scripts/macos/macosx_codesign.sh <path> <certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>"
     echo ""
     echo "path: the absolute(!) target path"
     echo "certname: the apple signing certificate name. Something like \"Developer ID Application: xxx (yyy)\""
@@ -13,32 +12,32 @@ if [ $# -lt 6 ]
     exit 1
 fi
 
-#Set workdir local (for plist files)
-cd "$( dirname "$0" )"
+SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
+
 APP_DIR=$1/bin
 APP_NAME=jcef_app.app
 FRAMEWORKS_DIR=Contents/Frameworks
 FRAMEWORK_NAME=Chromium\ Embedded\ Framework.framework
-ENTITLEMENTS_HELPER=entitlements/entitlements-helper.plist
-ENTITLEMENTS_BROWSER=entitlements/entitlements-browser.plist
+ENTITLEMENTS_HELPER="${ROOT_DIR}/entitlements/entitlements-helper.plist"
+ENTITLEMENTS_BROWSER="${ROOT_DIR}/entitlements/entitlements-browser.plist"
 
-chmod -R 777 $APP_DIR/$APP_NAME
-chmod +x macosx_notarize.sh
-chmod +x macosx_codesign_zip.sh
+chmod -R 777 "$APP_DIR/$APP_NAME"
+chmod +x "${SCRIPT_DIR}/macosx_notarize.sh"
+chmod +x "${SCRIPT_DIR}/macosx_codesign_zip.sh"
 
 #Sign helpers
 echo "Signing helpers..."
-cd "$( dirname "$0" )"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper.app"
-bash macosx_notarize.sh "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper.app" "$2" $3 org.jcef.jcef.helper $4 $5 $6
+bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper.app" "$2" "$3" org.jcef.jcef.helper "$4" "$5" "$6"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (GPU).app"
-bash macosx_notarize.sh "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (GPU).app" "$2" $3 org.jcef.jcef.helper.gpu $4 $5 $6
+bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (GPU).app" "$2" "$3" org.jcef.jcef.helper.gpu "$4" "$5" "$6"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Plugin).app"
-bash macosx_notarize.sh "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Plugin).app" "$2" $3 org.jcef.jcef.helper.plugin $4 $5 $6
+bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Plugin).app" "$2" "$3" org.jcef.jcef.helper.plugin "$4" "$5" "$6"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Renderer).app"
-bash macosx_notarize.sh "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Renderer).app" "$2" $3 org.jcef.jcef.helper.renderer $4 $5 $6
+bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Renderer).app" "$2" "$3" org.jcef.jcef.helper.renderer "$4" "$5" "$6"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Alerts).app"
-bash macosx_notarize.sh "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Alerts).app" "$2" $3 org.jcef.jcef.helper.alerts $4 $5 $6
+bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Alerts).app" "$2" "$3" org.jcef.jcef.helper.alerts "$4" "$5" "$6"
 
 #Sign libraries and framework
 echo "Signing libraries and framework..."
@@ -51,7 +50,7 @@ codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/Contents/Java/libjcef.dylib"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/Contents/MacOS/JavaAppLauncher"
 codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME"
-bash macosx_notarize.sh "$APP_DIR/$APP_NAME" "$2" $3 org.jcef.jcef $4 $5 $6
+bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME" "$2" "$3" org.jcef.jcef "$4" "$5" "$6"
 
 echo "Checking notarization validity"
 spctl -vvv --assess --type exec "$APP_DIR/$APP_NAME"

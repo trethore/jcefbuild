@@ -3,16 +3,19 @@
 setlocal
 
 if ("%2"=="") ( ^ 
-    echo "Usage: compile_windows.bat <architecture> <buildType> [<gitrepo> <gitref>]" && ^ 
+    echo "Usage: scripts\compile\compile_windows.bat <architecture> <buildType> [<gitrepo> <gitref>]" && ^ 
     echo "" && ^ 
     echo "architecture: the target architecture to build for. Architectures are either arm64, 386 or amd64." && ^ 
     echo "buildType: either Release or Debug" && ^ 
     echo "gitrepo: git repository url to clone" && ^ 
     echo "gitref: the git commit id to pull" && ^ 
-    exit 1 ^ 
+    exit /b 1 ^ 
 )
 
-cd /D "%~dp0"
+set "SCRIPT_DIR=%~dp0"
+for %%I in ("%SCRIPT_DIR%..\..") do set "ROOT_DIR=%%~fI"
+
+cd /D "%ROOT_DIR%"
 
 ::Determine repository and ref to pull from
 if ("%3"=="") (set "REPO=https://bitbucket.org/chromiumembedded/java-cef.git") ^
@@ -21,7 +24,7 @@ if ("%4"=="") (set "REF=master") ^
 else (set "REF=%4")
 
 :: Execute build with windows Dockerfile
-docker build -t jcefbuild --build-arg TARGETARCH=%1 --file DockerfileWindows .
+docker build -t jcefbuild --build-arg TARGETARCH=%1 --file scripts/docker/DockerfileWindows .
 if errorlevel 1 exit /b %errorlevel%
 
 :: Execute run with windows Dockerfile

@@ -1,8 +1,7 @@
 #!/bin/bash
 
-if [ $# -ne 2 ] && [ $# -ne 4 ] && [ $# -ne 9 ]
-  then
-    echo "Usage: ./compile_macosx.sh <architecture> <buildType> [<gitrepo> <gitref>] [<certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>]"
+if [ $# -ne 2 ] && [ $# -ne 4 ] && [ $# -ne 9 ]; then
+    echo "Usage: ./scripts/compile/compile_macosx.sh <architecture> <buildType> [<gitrepo> <gitref>] [<certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>]"
     echo ""
     echo "architecture: the target architecture to build for. Architectures are either amd64 or arm64."
     echo "buildType: either Release or Debug"
@@ -18,13 +17,15 @@ fi
 
 set -euo pipefail
 
-cd "$( dirname "$0" )"
-WORK_DIR=$(pwd)
+SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
+WORK_DIR="${ROOT_DIR}"
+
+cd "${ROOT_DIR}"
 
 TARGETARCH=$1
 BUILD_TYPE=$2
-if [ $# -lt 4 ]
-  then
+if [ $# -lt 4 ]; then
     REPO=https://bitbucket.org/chromiumembedded/java-cef.git
     REF=master
 else
@@ -66,7 +67,7 @@ ninja -j4
 
 #Generate distribution
 cd ../tools
-python3 "${WORK_DIR}/scripts/patch_jcef_tools.py" "$(pwd)"
+python3 "${WORK_DIR}/scripts/patch/patch_jcef_tools.py" "$(pwd)"
 if [ -f make_docs.sh ]; then
     sed -i "" 's/--ignore-source-errors//g' make_docs.sh
 fi
@@ -76,10 +77,9 @@ cd ..
 
 #Perform code signing
 cd binary_distrib/macosx64
-if [ $# -gt 4 ]
-  then
-    chmod +x "${WORK_DIR}/macosx_codesign.sh"
-    bash "${WORK_DIR}/macosx_codesign.sh" "$(pwd)" "$5" "$6" "$7" "$8" "$9"
+if [ $# -gt 4 ]; then
+    chmod +x "${WORK_DIR}/scripts/macos/macosx_codesign.sh"
+    bash "${WORK_DIR}/scripts/macos/macosx_codesign.sh" "$(pwd)" "$5" "$6" "$7" "$8" "$9"
     retVal=$?
     if [ $retVal -ne 0 ]; then
         echo "Binaries are not correctly signed"
