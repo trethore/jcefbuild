@@ -23,6 +23,7 @@ on:
           - macosx-amd64
           - macosx-arm64
           - windows-amd64
+          - windows-arm64
       sign_macosx:
         description: "Sign macosx builds"
         type: boolean
@@ -42,7 +43,7 @@ jobs:
         run: |
           case "${{ inputs.platform }}" in
             all)
-              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}'
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-11-arm","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"}]}'
               ;;
             linux-amd64)
               matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}'
@@ -58,6 +59,9 @@ jobs:
               ;;
             windows-amd64)
               matrix='{"include":[{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}'
+              ;;
+            windows-arm64)
+              matrix='{"include":[{"platform":"windows-arm64","os":"windows-11-arm","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"}]}'
               ;;
             *)
               echo "Unknown platform input: ${{ inputs.platform }}"
