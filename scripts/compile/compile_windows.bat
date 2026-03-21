@@ -23,6 +23,9 @@ else (set "REPO=%3")
 if ("%4"=="") (set "REF=master") ^
 else (set "REF=%4")
 
+call :ENSURE_DOCKER
+if errorlevel 1 exit /b %errorlevel%
+
 :: Execute build with windows Dockerfile
 docker build -t jcefbuild --build-arg TARGETARCH=%1 --file scripts/docker/DockerfileWindows .
 if errorlevel 1 exit /b %errorlevel%
@@ -41,3 +44,10 @@ if not exist "out\binary_distrib.tar.gz" (
     echo ERROR: out\binary_distrib.tar.gz not found after build.
     exit /b 1
 )
+
+goto :EOF
+
+:ENSURE_DOCKER
+echo Ensuring Docker daemon is available...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$serviceNames = @('docker', 'com.docker.service'); $services = @(); foreach ($name in $serviceNames) { $svc = Get-Service -Name $name -ErrorAction SilentlyContinue; if ($svc) { $services += $svc } }; foreach ($svc in $services) { if ($svc.Status -ne 'Running') { Write-Host ('Starting service ' + $svc.Name + '...'); Start-Service -Name $svc.Name -ErrorAction SilentlyContinue } }; $deadline = (Get-Date).AddMinutes(3); while ((Get-Date) -lt $deadline) { docker version *> $null; if ($LASTEXITCODE -eq 0) { Write-Host 'Docker daemon is ready.'; exit 0 }; foreach ($svc in $services) { try { $svc.Refresh(); if ($svc.Status -ne 'Running') { Start-Service -Name $svc.Name -ErrorAction SilentlyContinue } } catch { } }; Start-Sleep -Seconds 5 }; Write-Error 'Docker daemon did not become available in time.'; docker version; exit 1"
+exit /b %errorlevel%
