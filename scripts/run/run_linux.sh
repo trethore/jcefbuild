@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. /builder/retry.sh
+
 # Determine architecture
 echo "Building for architecture $TARGETARCH"
 
@@ -20,7 +22,7 @@ echo "-------------------------------------"
 if [ ! -f "/jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf /jcef
-    git clone ${REPO} /jcef
+    retry_git_clone "${REPO}" /jcef
     cd /jcef
     git checkout ${REF}
 else

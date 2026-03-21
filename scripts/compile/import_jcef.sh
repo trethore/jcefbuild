@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 
+. "${ROOT_DIR}/scripts/common/retry.sh"
+
 cd "${ROOT_DIR}"
 
 if [ -d "jcef/.git" ]; then
@@ -17,4 +19,4 @@ if [ -e "jcef" ] && [ -n "$(ls -A jcef)" ]; then
 fi
 
 mkdir -p jcef
-git clone https://github.com/trethore/jcef jcef
+retry_git_clone https://github.com/trethore/jcef jcef

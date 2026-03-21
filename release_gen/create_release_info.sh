@@ -1,5 +1,9 @@
 #!/bin/bash
 
+SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+
+. "${SCRIPT_DIR}/../scripts/common/retry.sh"
+
 if [ ! $# -eq 5 ]
   then
     echo "Usage: ./create_release_info.sh <gitrepo> <gitref> <actionsurl> <actionsrunnumber> <releaserepo>"
@@ -16,7 +20,7 @@ fi
 rm -f *.txt
 
 #Pull from git
-git clone $1 jcef
+retry_git_clone "$1" jcef
 cd jcef
 git checkout $2
 

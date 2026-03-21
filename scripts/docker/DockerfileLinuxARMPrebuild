@@ -28,6 +28,7 @@ ARG REF
 WORKDIR /builder
 #Copy existing sources, if any
 COPY jcef /jcef
+COPY scripts/common/retry.sh .
 
 #Copy and launch run script
 COPY scripts/run/run_linux_prebuild.sh .

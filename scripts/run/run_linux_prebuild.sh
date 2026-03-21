@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. /builder/retry.sh
+
 # This file prebuilds the java classes for arm/v6 under another architecture, as compilation of those fails
 # on arm/v6. They can be used on the platform nontheless.
 
@@ -17,7 +19,7 @@ echo "-------------------------------------"
 if [ ! -f "/jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf /jcef
-    git clone ${REPO} /jcef
+    retry_git_clone "${REPO}" /jcef
     cd /jcef
     git checkout ${REF}
 else

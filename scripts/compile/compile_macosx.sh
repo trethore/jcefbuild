@@ -21,6 +21,8 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 WORK_DIR="${ROOT_DIR}"
 
+. "${ROOT_DIR}/scripts/common/retry.sh"
+
 cd "${ROOT_DIR}"
 
 TARGETARCH=$1
@@ -39,7 +41,7 @@ echo "Building for architecture $TARGETARCH"
 if [ ! -f "jcef/README.md" ]; then
     echo "Did not find existing files to build - cloning..."
     rm -rf jcef
-    git clone "${REPO}" jcef
+    retry_git_clone "${REPO}" jcef
     cd jcef
     git checkout "${REF}"
     #No CMakeLists patching required on macos, as we do not add any new platforms
