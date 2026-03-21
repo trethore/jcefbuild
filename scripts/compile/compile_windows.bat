@@ -27,7 +27,7 @@ call :ENSURE_DOCKER
 if errorlevel 1 exit /b %errorlevel%
 
 :: Execute build with windows Dockerfile
-docker build -t jcefbuild --build-arg TARGETARCH=%1 --file scripts/docker/DockerfileWindows .
+docker build -m 4GB -t jcefbuild --build-arg TARGETARCH=%1 --file scripts/docker/DockerfileWindows .
 if errorlevel 1 exit /b %errorlevel%
 
 :: Execute run with windows Dockerfile
