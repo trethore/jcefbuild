@@ -1,24 +1,87 @@
+# escape=`
 ARG version=ltsc2022
 FROM mcr.microsoft.com/dotnet/framework/runtime:4.8.1-20221213-windowsservercore-$version
 
+SHELL ["cmd", "/S", "/C"]
+
 ARG TARGETARCH=amd64
 
-ENV chocolateyUseWindowsCompression false
+ENV chocolateyUseWindowsCompression=false
 
-RUN powershell -Command \
-    iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); \
-    choco feature disable --name showDownloadProgress
+RUN powershell -Command `
+    "iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); `
+    choco feature disable --name showDownloadProgress"
 
 RUN choco config set cachelocation C:\chococache
 
-RUN choco install jdk8 -params "both=true" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install microsoft-openjdk11 --params "'INSTALLDIR=C:\jdk-11'" --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN if /I "%TARGETARCH%"=="arm64" powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://aka.ms/download-jdk/microsoft-jdk-11-windows-aarch64.zip' -OutFile 'C:\microsoft-jdk-11-windows-aarch64.zip'; Expand-Archive -Path 'C:\microsoft-jdk-11-windows-aarch64.zip' -DestinationPath 'C:\jdk-11-arm64-tmp'; $jdkDir = (Get-ChildItem 'C:\jdk-11-arm64-tmp' | Select-Object -First 1).FullName; Move-Item -Path $jdkDir -Destination 'C:\jdk-11-arm64'; Remove-Item 'C:\microsoft-jdk-11-windows-aarch64.zip' -Force; Remove-Item 'C:\jdk-11-arm64-tmp' -Recurse -Force"
-RUN choco install cmake.install --version=3.19 --installargs '"ADD_CMAKE_TO_PATH=System"' --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install ninja --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install git --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN choco install python --version=3.7.2 --confirm --limit-output --timeout 216000 && rmdir /S /Q C:\chococache
-RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_buildtools.exe && if /I "%TARGETARCH%"=="arm64" (start /w C:\vs_buildtools.exe --quiet --wait --norestart --nocache --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.ATL.ARM64 --includeRecommended --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 --remove Microsoft.VisualStudio.Component.Windows81SDK || IF "%ERRORLEVEL%"=="3010" EXIT 0) else (start /w C:\vs_buildtools.exe --quiet --wait --norestart --nocache --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --includeRecommended --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 --remove Microsoft.VisualStudio.Component.Windows81SDK || IF "%ERRORLEVEL%"=="3010" EXIT 0) && del /F /Q C:\vs_buildtools.exe && rmdir /S /Q C:\chococache 2>nul
+RUN choco install jdk8 `
+    -params "both=true" `
+    --confirm --limit-output --timeout 216000 `
+    && rmdir /S /Q C:\chococache
+
+RUN choco install microsoft-openjdk11 `
+    --params "'INSTALLDIR=C:\jdk-11'" `
+    --confirm --limit-output --timeout 216000 `
+    && rmdir /S /Q C:\chococache
+
+RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
+    "$ProgressPreference = 'SilentlyContinue'; `
+    Invoke-WebRequest -Uri 'https://aka.ms/download-jdk/microsoft-jdk-11-windows-aarch64.zip' -OutFile 'C:\microsoft-jdk-11-windows-aarch64.zip'; `
+    Expand-Archive -Path 'C:\microsoft-jdk-11-windows-aarch64.zip' -DestinationPath 'C:\jdk-11-arm64-tmp'; `
+    $jdkDir = (Get-ChildItem 'C:\jdk-11-arm64-tmp' | Select-Object -First 1).FullName; `
+    Move-Item -Path $jdkDir -Destination 'C:\jdk-11-arm64'; `
+    Remove-Item 'C:\microsoft-jdk-11-windows-aarch64.zip' -Force; `
+    Remove-Item 'C:\jdk-11-arm64-tmp' -Recurse -Force"
+
+RUN choco install cmake.install `
+    --version=3.19 `
+    --installargs '"ADD_CMAKE_TO_PATH=System"' `
+    --confirm --limit-output --timeout 216000 `
+    && rmdir /S /Q C:\chococache
+
+RUN choco install ninja `
+    --confirm --limit-output --timeout 216000 `
+    && rmdir /S /Q C:\chococache
+
+RUN choco install git `
+    --confirm --limit-output --timeout 216000 `
+    && rmdir /S /Q C:\chococache
+
+RUN choco install python `
+    --version=3.7.2 `
+    --confirm --limit-output --timeout 216000 `
+    && rmdir /S /Q C:\chococache
+
+RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_buildtools.exe `
+    && if /I "%TARGETARCH%"=="arm64" ( `
+        start /w "" C:\vs_buildtools.exe `
+            --quiet --wait --norestart --nocache `
+            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
+            --add Microsoft.VisualStudio.Workload.VCTools `
+            --add Microsoft.VisualStudio.Component.VC.ATL `
+            --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
+            --add Microsoft.VisualStudio.Component.VC.ATL.ARM64 `
+            --includeRecommended `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
+            --remove Microsoft.VisualStudio.Component.Windows81SDK `
+        || IF "%ERRORLEVEL%"=="3010" EXIT 0 `
+    ) else ( `
+        start /w "" C:\vs_buildtools.exe `
+            --quiet --wait --norestart --nocache `
+            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
+            --add Microsoft.VisualStudio.Workload.VCTools `
+            --add Microsoft.VisualStudio.Component.VC.ATL `
+            --includeRecommended `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
+            --remove Microsoft.VisualStudio.Component.Windows81SDK `
+        || IF "%ERRORLEVEL%"=="3010" EXIT 0 `
+    ) `
+    && del /F /Q C:\vs_buildtools.exe `
+    && if exist C:\chococache rmdir /S /Q C:\chococache
 
 WORKDIR C:/
 
