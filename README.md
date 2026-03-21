@@ -14,13 +14,14 @@ Independent project to produce binary artifacts for the JCEF project.
 - macosx-amd64
 - macosx-arm64
 - windows-amd64
+- windows-arm64
 
 ## Build environment (GitHub Actions)
 
 | Platform | Build environment |
 | --- | --- |
 | Linux | Docker build (see `DockerfileLinux` for the toolchain and base image) |
-| Windows | Docker build with VS Build Tools 2022 inside a Windows container |
+| Windows | Docker build with VS Build Tools 2022 inside a Windows container; `windows-amd64` runs on `windows-2022`, `windows-arm64` runs on `windows-11-arm` |
 | macOS | GitHub runner toolchain (Xcode + Ninja) plus `scripts/install_macos_dependencies.sh`; Java: Corretto 8; Python: 3.10.11 |
 
 ## Downloading artifacts
@@ -36,12 +37,14 @@ following inputs:
 - `jcef_repo` (default: `https://github.com/trethore/jcef`)
 - `jcef_ref` (default: `master`)
 - `platform` (default: `all`)
-  - `all`, `linux-amd64`, `linux-arm64`, `macosx-amd64`, `macosx-arm64`, `windows-amd64`
+  - `all`, `linux-amd64`, `linux-arm64`, `macosx-amd64`, `macosx-arm64`, `windows-amd64`, `windows-arm64`
 - `sign_macosx` (default: `false`)
 - `dry_run` (default: `true`)
   - `true`: build + upload action artifacts only
   - `false`: create a release and upload the binaries
     (plus `build_meta.json` and `LICENSE`)
+
+Note: `windows-arm64` uses the GitHub-hosted `windows-11-arm` runner label.
 
 ### macOS signing secrets
 
