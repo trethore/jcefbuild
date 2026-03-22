@@ -8,7 +8,6 @@ set "PATCH_SCRIPT=C:\patch_cmake.py"
 set "PATCH_FILE=C:\CMakeLists.txt.patch"
 set "OUT_DIR=C:\out"
 set "BINARY_DISTRIB_ARCHIVE=%OUT_DIR%\binary_distrib.tar.gz"
-set "BASE_PATH=%PATH%"
 set "VCVARS_BAT="
 set "NATIVE_JAVA_HOME_DIR="
 set "TOOLS_JAVA_HOME_DIR="
@@ -104,7 +103,7 @@ exit /b 1
 
 :SET_JAVA_ENV
 set "JAVA_HOME=%~1"
-set "PATH=%JAVA_HOME%/bin;%BASE_PATH%"
+set "PATH=%JAVA_HOME%/bin;%PATH%"
 exit /b 0
 
 
