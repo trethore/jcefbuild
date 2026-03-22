@@ -9,7 +9,6 @@ ARG TARGETARCH=amd64
 ENV chocolateyUseWindowsCompression=false
 ENV CHOCO_CACHE_DIR=C:\chococache
 ENV CHOCO_TIMEOUT=216000
-ENV VS_BUILDTOOLS_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools
 
 RUN powershell -Command `
     "iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); `
@@ -55,7 +54,7 @@ RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_build
     && if /I "%TARGETARCH%"=="arm64" ( `
         start /w "" C:\vs_buildtools.exe `
             --quiet --wait --norestart --nocache `
-            --installPath "%VS_BUILDTOOLS_PATH%" `
+            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
             --add Microsoft.VisualStudio.Workload.VCTools `
             --add Microsoft.VisualStudio.Component.VC.ATL `
             --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
@@ -69,7 +68,7 @@ RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_build
     ) else ( `
         start /w "" C:\vs_buildtools.exe `
             --quiet --wait --norestart --nocache `
-            --installPath "%VS_BUILDTOOLS_PATH%" `
+            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
             --add Microsoft.VisualStudio.Workload.VCTools `
             --add Microsoft.VisualStudio.Component.VC.ATL `
             --includeRecommended `
