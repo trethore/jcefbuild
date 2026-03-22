@@ -58,6 +58,7 @@ call :SET_JAVA_ENV "%NATIVE_JAVA_HOME_DIR%"
 cmake ^
     -G "Ninja" ^
     -DJAVA_HOME="%NATIVE_JAVA_HOME_DIR%" ^
+    -DCMAKE_MSVC_RUNTIME_LIBRARY= ^
     -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
     .. || exit /b !errorlevel!
 ninja -j4 || exit /b !errorlevel!
