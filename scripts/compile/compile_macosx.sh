@@ -72,6 +72,15 @@ cd ../tools
 python3 "${WORK_DIR}/scripts/patch/patch_jcef_tools.py" "$(pwd)"
 if [ -f make_docs.sh ]; then
     sed -i "" 's/--ignore-source-errors//g' make_docs.sh
+    if ! grep -q -- '--add-exports=java.desktop/sun.lwawt=ALL-UNNAMED' make_docs.sh; then
+        sed -i "" 's|javadoc |javadoc --add-exports=java.desktop/sun.lwawt=ALL-UNNAMED --add-exports=java.desktop/sun.lwawt.macosx=ALL-UNNAMED |' make_docs.sh
+    fi
+    if ! ./make_docs.sh; then
+        if [ ! -d ../out/docs ]; then
+            echo "ERROR: Javadoc generation failed and no docs were produced." >&2
+            exit 1
+        fi
+    fi
 fi
 chmod +x make_distrib.sh
 ./make_distrib.sh macosx64

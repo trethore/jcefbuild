@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 . /builder/retry.sh
 
 # Determine architecture
@@ -9,6 +11,12 @@ if [ "${TARGETARCH}" != 'amd64' ] && [ "${TARGETARCH}" != 'arm64' ]; then
     echo "ERROR: Unsupported TARGETARCH '${TARGETARCH}'"
     exit 1
 fi
+
+if [ -z "${JAVA_HOME:-}" ]; then
+    JAVA_BIN=$(readlink -f "$(command -v javac)")
+    export JAVA_HOME=$(dirname "$(dirname "${JAVA_BIN}")")
+fi
+export PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Print some debug info
 echo "-------------------------------------"
