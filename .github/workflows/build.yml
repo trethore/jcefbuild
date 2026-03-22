@@ -43,7 +43,7 @@ jobs:
         run: |
           case "${{ inputs.platform }}" in
             all)
-              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"}]}'
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz"}]}'
               ;;
             linux-amd64)
               matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}'
@@ -52,10 +52,10 @@ jobs:
               matrix='{"include":[{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"}]}'
               ;;
             macosx-amd64)
-              matrix='{"include":[{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","artifact":"macosx-amd64.tar.gz"}]}'
+              matrix='{"include":[{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"}]}'
               ;;
             macosx-arm64)
-              matrix='{"include":[{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","artifact":"macosx-arm64.tar.gz"}]}'
+              matrix='{"include":[{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"}]}'
               ;;
             windows-amd64)
               matrix='{"include":[{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"}]}'
@@ -143,6 +143,7 @@ jobs:
         with:
           java-version: "17"
           distribution: "corretto"
+          architecture: ${{ matrix.java_arch }}
       - name: Set up Python
         if: ${{ matrix.runner == 'macos' }}
         uses: actions/setup-python@v6
