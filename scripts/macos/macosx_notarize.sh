@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -euo pipefail
 
 #Contents partly stolen from https://scriptingosx.com/2019/09/notarize-a-command-line-tool/
 #Will need updating for XCode 13+
@@ -20,35 +22,45 @@ fi
 echo "##########################################################"
 echo "Notarizing $1... This may take a while."
 
-APP_DIR="$( dirname "$1" )"
-APP_NAME="$( basename "$1" )"
-ZIP_PATH=$1.zip
+TARGET_PATH=$1
+CERT_NAME=$2
+TEAM_NAME=$3
+BUNDLE_ID=$4
+APPLE_KEY_ID=$5
+APPLE_KEY_PATH=$6
+APPLE_KEY_ISSUER=$7
+APP_DIR="$( dirname "${TARGET_PATH}" )"
+APP_NAME="$( basename "${TARGET_PATH}" )"
+ZIP_PATH="${TARGET_PATH}.zip"
+NOTARY_OUTPUT_PATH="${APP_DIR}/notary_output.txt"
+NOTARIZATION_LOG_PATH="${APP_DIR}/notarization.log"
 
-cd $APP_DIR
+cd "${APP_DIR}"
 echo "Creating zip"
-zip -r "$APP_NAME.zip" "$APP_NAME"
+zip -r "${APP_NAME}.zip" "${APP_NAME}"
 
-echo "Uploading $ZIP_PATH for notarization and waiting for result"
-xcrun notarytool submit "$1.zip" \
-                 --key $6 \
-                 --key-id $5 \
-                 --issuer $7 \
-                 --wait 2>&1 | tee notary_output.txt
-rm "$APP_NAME.zip"
-requestUUID=$(cat notary_output.txt | awk '/id:/ { print $NF; exit; }')
-rm notary_output.txt
+echo "Uploading ${ZIP_PATH} for notarization and waiting for result"
+xcrun notarytool submit "${ZIP_PATH}" \
+    --key "${APPLE_KEY_PATH}" \
+    --key-id "${APPLE_KEY_ID}" \
+    --issuer "${APPLE_KEY_ISSUER}" \
+    --wait 2>&1 | tee "${NOTARY_OUTPUT_PATH}"
+
+rm "${APP_NAME}.zip"
+requestUUID=$(awk '/id:/ { print $NF; exit; }' "${NOTARY_OUTPUT_PATH}")
+rm "${NOTARY_OUTPUT_PATH}"
 
 echo "Notarization log:"
-xcrun notarytool log $requestUUID \
-                 --key $6 \
-                 --key-id $5 \
-                 --issuer $7 \
-                 notarization.log
-cat notarization.log
-rm -f notarization.log
+xcrun notarytool log "${requestUUID}" \
+    --key "${APPLE_KEY_PATH}" \
+    --key-id "${APPLE_KEY_ID}" \
+    --issuer "${APPLE_KEY_ISSUER}" \
+    "${NOTARIZATION_LOG_PATH}"
+cat "${NOTARIZATION_LOG_PATH}"
+rm -f "${NOTARIZATION_LOG_PATH}"
 echo ""
 
 # staple
-xcrun stapler staple -v "$1"
+xcrun stapler staple -v "${TARGET_PATH}"
 
 echo "##########################################################"

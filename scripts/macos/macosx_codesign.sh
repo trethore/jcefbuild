@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -euo pipefail
 
 if [ $# -lt 6 ]; then
     echo "Usage: ./scripts/macos/macosx_codesign.sh <path> <certname> <teamname> <applekeyid> <applekeypath> <applekeyissuer>"
@@ -15,47 +17,103 @@ fi
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 
-APP_DIR=$1/bin
+TARGET_DIR=$1
+CERT_NAME=$2
+TEAM_NAME=$3
+APPLE_KEY_ID=$4
+APPLE_KEY_PATH=$5
+APPLE_KEY_ISSUER=$6
+
+APP_DIR="${TARGET_DIR}/bin"
 APP_NAME=jcef_app.app
 FRAMEWORKS_DIR=Contents/Frameworks
 FRAMEWORK_NAME=Chromium\ Embedded\ Framework.framework
 ENTITLEMENTS_HELPER="${ROOT_DIR}/entitlements/entitlements-helper.plist"
 ENTITLEMENTS_BROWSER="${ROOT_DIR}/entitlements/entitlements-browser.plist"
+APP_BUNDLE="${APP_DIR}/${APP_NAME}"
 
-chmod -R 777 "$APP_DIR/$APP_NAME"
+codesign_runtime() {
+    local entitlements=$1
+    local target=$2
+
+    codesign \
+        --force \
+        --options runtime \
+        --entitlements "${entitlements}" \
+        --sign "${CERT_NAME}" \
+        --timestamp \
+        --verbose \
+        "${target}"
+}
+
+notarize_target() {
+    local target=$1
+    local bundle_id=$2
+
+    bash "${SCRIPT_DIR}/macosx_notarize.sh" \
+        "${target}" \
+        "${CERT_NAME}" \
+        "${TEAM_NAME}" \
+        "${bundle_id}" \
+        "${APPLE_KEY_ID}" \
+        "${APPLE_KEY_PATH}" \
+        "${APPLE_KEY_ISSUER}"
+}
+
+sign_helper() {
+    local helper_name=$1
+    local bundle_id=$2
+    local helper_path="${APP_BUNDLE}/${FRAMEWORKS_DIR}/${helper_name}"
+
+    codesign_runtime "${ENTITLEMENTS_HELPER}" "${helper_path}"
+    notarize_target "${helper_path}" "${bundle_id}"
+}
+
+chmod -R 777 "${APP_BUNDLE}"
 chmod +x "${SCRIPT_DIR}/macosx_notarize.sh"
 chmod +x "${SCRIPT_DIR}/macosx_codesign_zip.sh"
 
 #Sign helpers
 echo "Signing helpers..."
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper.app"
-bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper.app" "$2" "$3" org.jcef.jcef.helper "$4" "$5" "$6"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (GPU).app"
-bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (GPU).app" "$2" "$3" org.jcef.jcef.helper.gpu "$4" "$5" "$6"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Plugin).app"
-bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Plugin).app" "$2" "$3" org.jcef.jcef.helper.plugin "$4" "$5" "$6"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Renderer).app"
-bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Renderer).app" "$2" "$3" org.jcef.jcef.helper.renderer "$4" "$5" "$6"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_HELPER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Alerts).app"
-bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/jcef Helper (Alerts).app" "$2" "$3" org.jcef.jcef.helper.alerts "$4" "$5" "$6"
+sign_helper "jcef Helper.app" "org.jcef.jcef.helper"
+sign_helper "jcef Helper (GPU).app" "org.jcef.jcef.helper.gpu"
+sign_helper "jcef Helper (Plugin).app" "org.jcef.jcef.helper.plugin"
+sign_helper "jcef Helper (Renderer).app" "org.jcef.jcef.helper.renderer"
+sign_helper "jcef Helper (Alerts).app" "org.jcef.jcef.helper.alerts"
 
 #Sign libraries and framework
 echo "Signing libraries and framework..."
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME/Libraries/libEGL.dylib"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME/Libraries/libGLESv2.dylib"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME/Libraries/libvk_swiftshader.dylib"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME/Libraries/libcef_sandbox.dylib"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME/Chromium Embedded Framework"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/$FRAMEWORKS_DIR/$FRAMEWORK_NAME"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/Contents/Java/libjcef.dylib"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME/Contents/MacOS/JavaAppLauncher"
-codesign --force --options runtime --entitlements "$ENTITLEMENTS_BROWSER" --sign "$2" --timestamp --verbose "$APP_DIR/$APP_NAME"
-bash "${SCRIPT_DIR}/macosx_notarize.sh" "$APP_DIR/$APP_NAME" "$2" "$3" org.jcef.jcef "$4" "$5" "$6"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/${FRAMEWORKS_DIR}/${FRAMEWORK_NAME}/Libraries/libEGL.dylib"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/${FRAMEWORKS_DIR}/${FRAMEWORK_NAME}/Libraries/libGLESv2.dylib"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/${FRAMEWORKS_DIR}/${FRAMEWORK_NAME}/Libraries/libvk_swiftshader.dylib"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/${FRAMEWORKS_DIR}/${FRAMEWORK_NAME}/Libraries/libcef_sandbox.dylib"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/${FRAMEWORKS_DIR}/${FRAMEWORK_NAME}/Chromium Embedded Framework"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/${FRAMEWORKS_DIR}/${FRAMEWORK_NAME}"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/Contents/Java/libjcef.dylib"
+codesign_runtime \
+    "${ENTITLEMENTS_BROWSER}" \
+    "${APP_BUNDLE}/Contents/MacOS/JavaAppLauncher"
+codesign_runtime "${ENTITLEMENTS_BROWSER}" "${APP_BUNDLE}"
+notarize_target "${APP_BUNDLE}" "org.jcef.jcef"
 
 echo "Checking notarization validity"
-spctl -vvv --assess --type exec "$APP_DIR/$APP_NAME"
+spctl -vvv --assess --type exec "${APP_BUNDLE}"
 retVal=$?
-if [ $retVal -ne 0 ]; then
+if [ ${retVal} -ne 0 ]; then
     echo "Binaries are not correctly signed"
     exit 1
 fi

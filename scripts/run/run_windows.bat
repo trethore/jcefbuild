@@ -1,31 +1,25 @@
 @echo off
 
-setlocal
+setlocal EnableExtensions EnableDelayedExpansion
 
+set "ROOT_DIR=C:\"
+set "JCEF_DIR=C:\jcef"
+set "PATCH_SCRIPT=C:\patch_cmake.py"
+set "PATCH_FILE=C:\CMakeLists.txt.patch"
+set "OUT_DIR=C:\out"
+set "BINARY_DISTRIB_ARCHIVE=%OUT_DIR%\binary_distrib.tar.gz"
+set "BASE_PATH=%PATH%"
 set "VCVARS_BAT="
 set "NATIVE_JAVA_HOME_DIR="
 set "TOOLS_JAVA_HOME_DIR="
 set "DISTRIB_DIR="
 
+set "TARGETARCH=%TARGETARCH%"
+set "BUILD_TYPE=%BUILD_TYPE%"
+
 echo Building 64-bit version
 
-if "%TARGETARCH%"=="amd64" (
-    set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-    set "NATIVE_JAVA_HOME_DIR=C:/jdk-17"
-    set "TOOLS_JAVA_HOME_DIR=C:/jdk-17"
-    set "DISTRIB_DIR=win64"
-)
-if "%TARGETARCH%"=="arm64" (
-    set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat"
-    set "NATIVE_JAVA_HOME_DIR=C:/jdk-17-arm64"
-    set "TOOLS_JAVA_HOME_DIR=C:/jdk-17"
-    set "DISTRIB_DIR=win64"
-)
-
-if not defined VCVARS_BAT (
-    echo ERROR: Unsupported TARGETARCH "%TARGETARCH%"
-    exit /b 1
-)
+call :SET_ARCH_CONFIG || exit /b !errorlevel!
 
 if exist "%VCVARS_BAT%" goto :VCVARS_READY
 echo ERROR: Required Visual Studio environment script not found: %VCVARS_BAT%
@@ -34,73 +28,90 @@ exit /b 1
 :VCVARS_READY
 
 :: Update ssl certs
-certutil -generateSSTFromWU roots.sst && certutil -addstore -f root roots.sst && del roots.sst
-if errorlevel 1 exit /b %errorlevel%
+certutil -generateSSTFromWU roots.sst ^
+    && certutil -addstore -f root roots.sst ^
+    && del roots.sst ^
+    || exit /b !errorlevel!
 
 :: Check residency of workdir
-cd ..
-if errorlevel 1 exit /b %errorlevel%
-if exist "jcef\README.md" (echo "Found existing files to build" && cd jcef) ^
-else (echo "Did not find files to build - cloning..." && GOTO :CLONE)
-if errorlevel 1 exit /b %errorlevel%
+cd /D "%ROOT_DIR%" || exit /b !errorlevel!
+if exist "%JCEF_DIR%\README.md" (
+    echo Found existing files to build
+    cd /D "%JCEF_DIR%" || exit /b !errorlevel!
+) else (
+    echo Did not find files to build - cloning...
+    call :CLONE_REPOSITORY || exit /b !errorlevel!
+)
 
-:BUILD
 :: CMakeLists patching 
-python C:/patch_cmake.py CMakeLists.txt C:/CMakeLists.txt.patch
-if errorlevel 1 exit /b %errorlevel%
+python "%PATCH_SCRIPT%" CMakeLists.txt "%PATCH_FILE%" || exit /b !errorlevel!
 
 :: Prepare build dir
 if not exist jcef_build mkdir jcef_build
-if errorlevel 1 exit /b %errorlevel%
-cd jcef_build
-if errorlevel 1 exit /b %errorlevel%
+cd /D jcef_build || exit /b !errorlevel!
 
 :: Load vcvars for the selected build
-call "%VCVARS_BAT%"
-if errorlevel 1 exit /b %errorlevel%
+call "%VCVARS_BAT%" || exit /b !errorlevel!
 
-set "JAVA_HOME=%NATIVE_JAVA_HOME_DIR%"
-set "PATH=%JAVA_HOME%/bin;%PATH%"
+call :SET_JAVA_ENV "%NATIVE_JAVA_HOME_DIR%"
 
 :: Perform build
-cmake -G "Ninja" -DJAVA_HOME="%NATIVE_JAVA_HOME_DIR%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-if errorlevel 1 exit /b %errorlevel%
-ninja -j4
-if errorlevel 1 exit /b %errorlevel%
+cmake ^
+    -G "Ninja" ^
+    -DJAVA_HOME="%NATIVE_JAVA_HOME_DIR%" ^
+    -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
+    .. || exit /b !errorlevel!
+ninja -j4 || exit /b !errorlevel!
 
 :: Compile java classes
-cd ../tools
-if errorlevel 1 exit /b %errorlevel%
-set "JAVA_HOME=%TOOLS_JAVA_HOME_DIR%"
-set "PATH=%JAVA_HOME%/bin;%PATH%"
-call compile.bat %DISTRIB_DIR%
-if errorlevel 1 exit /b %errorlevel%
+cd /D ..\tools || exit /b !errorlevel!
+call :SET_JAVA_ENV "%TOOLS_JAVA_HOME_DIR%"
+call compile.bat %DISTRIB_DIR% || exit /b !errorlevel!
 
 :: Create distribution
-call make_distrib.bat %DISTRIB_DIR%
-if errorlevel 1 exit /b %errorlevel%
+call make_distrib.bat %DISTRIB_DIR% || exit /b !errorlevel!
 
 :: Go to results
-cd ../binary_distrib/%DISTRIB_DIR%
-if errorlevel 1 exit /b %errorlevel%
+cd /D ..\binary_distrib\%DISTRIB_DIR% || exit /b !errorlevel!
 :: Zip results to C:\out
-del /F C:\out\binary_distrib.tar.gz 2>nul
-if not exist "C:\out" mkdir "C:\out"
-if errorlevel 1 exit /b %errorlevel%
-tar -czvf C:\out\binary_distrib.tar.gz *
-if errorlevel 1 exit /b %errorlevel%
+del /F "%BINARY_DISTRIB_ARCHIVE%" 2>nul
+if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
+tar -czvf "%BINARY_DISTRIB_ARCHIVE%" * || exit /b !errorlevel!
 
 GOTO :EOF
 
 
+:SET_ARCH_CONFIG
+if /I "%TARGETARCH%"=="amd64" (
+    set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+    set "NATIVE_JAVA_HOME_DIR=C:/jdk-17"
+    set "TOOLS_JAVA_HOME_DIR=C:/jdk-17"
+    set "DISTRIB_DIR=win64"
+    exit /b 0
+)
 
-:CLONE
-if exist jcef rmdir /S /Q jcef
-if errorlevel 1 exit /b %errorlevel%
-git clone %REPO% jcef
-if errorlevel 1 exit /b %errorlevel%
-cd jcef
-if errorlevel 1 exit /b %errorlevel%
-git checkout %REF%
-if errorlevel 1 exit /b %errorlevel%
-GOTO :BUILD
+if /I "%TARGETARCH%"=="arm64" (
+    set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat"
+    set "NATIVE_JAVA_HOME_DIR=C:/jdk-17-arm64"
+    set "TOOLS_JAVA_HOME_DIR=C:/jdk-17"
+    set "DISTRIB_DIR=win64"
+    exit /b 0
+)
+
+echo ERROR: Unsupported TARGETARCH "%TARGETARCH%"
+exit /b 1
+
+
+:SET_JAVA_ENV
+set "JAVA_HOME=%~1"
+set "PATH=%JAVA_HOME%/bin;%BASE_PATH%"
+exit /b 0
+
+
+
+:CLONE_REPOSITORY
+if exist "%JCEF_DIR%" rmdir /S /Q "%JCEF_DIR%"
+git clone %REPO% "%JCEF_DIR%" || exit /b !errorlevel!
+cd /D "%JCEF_DIR%" || exit /b !errorlevel!
+git checkout %REF% || exit /b !errorlevel!
+exit /b 0

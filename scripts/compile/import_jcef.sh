@@ -5,18 +5,21 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 
 . "${ROOT_DIR}/scripts/common/retry.sh"
+. "${ROOT_DIR}/scripts/common/jcef.sh"
+
+readonly JCEF_DIR="${ROOT_DIR}/jcef"
 
 cd "${ROOT_DIR}"
 
-if [ -d "jcef/.git" ]; then
+if [ -d "${JCEF_DIR}/.git" ]; then
   echo "jcef already exists; skipping clone."
   exit 0
 fi
 
-if [ -e "jcef" ] && [ -n "$(ls -A jcef)" ]; then
+if directory_has_entries "${JCEF_DIR}"; then
   echo "jcef exists and is not empty; aborting to avoid overwriting."
   exit 1
 fi
 
-mkdir -p jcef
-retry_git_clone https://github.com/trethore/jcef jcef
+ensure_directory "${JCEF_DIR}"
+retry_git_clone "${DEFAULT_JCEF_REPO}" "${JCEF_DIR}"

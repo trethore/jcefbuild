@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [ $# -lt 2 ] || [ $# -eq 3 ]; then
     echo "Usage: ./scripts/compile/compile_linux.sh <architecture> <buildType> [<gitrepo> <gitref>]"
@@ -15,73 +15,92 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 
+. "${ROOT_DIR}/scripts/common/jcef.sh"
+
+readonly OUT_DIR="${ROOT_DIR}/out"
+readonly JCEF_DIR="${ROOT_DIR}/jcef"
+readonly BINARY_DISTRIB_ARCHIVE="${OUT_DIR}/binary_distrib.tar.gz"
+
+move_output_if_present() {
+    local source_path=$1
+    local destination_path=$2
+
+    if [ -e "${source_path}" ]; then
+        rm -rf "${destination_path}"
+        mv "${source_path}" "${destination_path}"
+    fi
+}
+
 TARGETARCH=$1
 BUILD_TYPE=$2
 if [ $# -eq 2 ]; then
-    REPO=https://github.com/trethore/jcef.git
-    REF=master
+    REPO=${DEFAULT_JCEF_REPO}
+    REF=${DEFAULT_JCEF_REF}
 else
     REPO=$3
     REF=$4
 fi
 
-if [ "${TARGETARCH}" != "amd64" ] && [ "${TARGETARCH}" != "arm64" ]; then
-    echo "ERROR: Unsupported architecture '${TARGETARCH}'. Supported architectures are amd64 and arm64." >&2
-    exit 1
-fi
+require_supported_arch "${TARGETARCH}"
 
 cd "${ROOT_DIR}"
 
 #Remove old build output
-rm -rf out
-mkdir out
+rm -rf "${OUT_DIR}"
+mkdir "${OUT_DIR}"
 
 #Remove binary distribution if there was one built before (saves transfer of it to docker context)
-rm -rf jcef/binary_distrib
+rm -rf "${JCEF_DIR}/binary_distrib"
 #Ensure build context always has a jcef dir
-mkdir -p jcef
+mkdir -p "${JCEF_DIR}"
 
 #Execute buildx with linux dockerfile and output to current directory
-docker buildx build --no-cache --progress=plain --platform=linux/"${TARGETARCH}" --build-arg TARGETARCH="${TARGETARCH}" --build-arg BUILD_TYPE="${BUILD_TYPE}" --build-arg REPO="${REPO}" --build-arg REF="${REF}" --file scripts/docker/DockerfileLinux --output out .
+docker buildx build \
+    --no-cache \
+    --progress=plain \
+    --platform="linux/${TARGETARCH}" \
+    --build-arg "TARGETARCH=${TARGETARCH}" \
+    --build-arg "BUILD_TYPE=${BUILD_TYPE}" \
+    --build-arg "REPO=${REPO}" \
+    --build-arg "REF=${REF}" \
+    --file scripts/docker/DockerfileLinux \
+    --output "${OUT_DIR}" \
+    .
 docker builder prune -f --filter "label=jcefbuild=true"
 
-if [ ! -f "out/binary_distrib.tar.gz" ]; then
-    echo "ERROR: out/binary_distrib.tar.gz not found after build." >&2
+if [ ! -f "${BINARY_DISTRIB_ARCHIVE}" ]; then
+    echo "ERROR: ${BINARY_DISTRIB_ARCHIVE} not found after build." >&2
     exit 1
 fi
 
 #Cleanup output dir
-rm -f out/third_party/cef/*.bz2 out/third_party/cef/*.sha1
+rm -f "${OUT_DIR}"/third_party/cef/*.bz2 "${OUT_DIR}"/third_party/cef/*.sha1
 
 # Check if the cef download was performed. If so, move third_party dir to jcef dir
-export downloaded=0
-for f in out/third_party/cef/cef_binary_*; do
-    test -d "$f" || continue
-    #We found a matching dir
-    export downloaded=1
-    break
-done
-if [ "$downloaded" -eq "1" ]; then
-    rm -rf jcef/third_party
-    mv out/third_party jcef
+if pattern_has_match "${OUT_DIR}/third_party/cef/cef_binary_*"; then
+    rm -rf "${JCEF_DIR}/third_party"
+    mv "${OUT_DIR}/third_party" "${JCEF_DIR}"
 else
-    rm -rf out/third_party
+    rm -rf "${OUT_DIR}/third_party"
 fi
 
 # Check if the clang download was performed. If so, move it to jcef dir
-if [ -f "out/buildtools/clang-format" ]; then
-    rm -rf jcef/tools/buildtools/linux64
-    mv out/buildtools jcef/tools/buildtools/linux64
+if [ -f "${OUT_DIR}/buildtools/clang-format" ]; then
+    move_output_if_present \
+        "${OUT_DIR}/buildtools" \
+        "${JCEF_DIR}/tools/buildtools/linux64"
 fi
 
 #Move jcef_build
-if [ -f "out/jcef_build" ]; then
-    rm -rf jcef/jcef_build
-    mv out/jcef_build jcef/jcef_build
+if [ -e "${OUT_DIR}/jcef_build" ]; then
+    move_output_if_present \
+        "${OUT_DIR}/jcef_build" \
+        "${JCEF_DIR}/jcef_build"
 fi
 
 #Move target to binary_distrib
-if [ -f "out/target" ]; then
-    rm -rf jcef/binary_distrib
-    mv out/target jcef/binary_distrib
+if [ -e "${OUT_DIR}/target" ]; then
+    move_output_if_present \
+        "${OUT_DIR}/target" \
+        "${JCEF_DIR}/binary_distrib"
 fi

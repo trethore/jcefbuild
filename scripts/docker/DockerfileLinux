@@ -27,6 +27,7 @@ COPY jcef /jcef
 
 #Copy cmake patching script
 COPY scripts/common/retry.sh .
+COPY scripts/common/jcef.sh .
 COPY scripts/patch/patch_cmake.py .
 COPY scripts/patch/patch_jcef_tools.py .
 COPY patch/CMakeLists.txt.patch .

@@ -7,18 +7,21 @@ SHELL ["cmd", "/S", "/C"]
 ARG TARGETARCH=amd64
 
 ENV chocolateyUseWindowsCompression=false
+ENV CHOCO_CACHE_DIR=C:\chococache
+ENV CHOCO_COMMON_ARGS=--confirm --limit-output --timeout 216000
+ENV VS_BUILDTOOLS_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools
 
 RUN powershell -Command `
     "iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); `
     choco feature disable --name showDownloadProgress"
 
-RUN choco config set cachelocation C:\chococache
+RUN choco config set cachelocation %CHOCO_CACHE_DIR%
 
 RUN choco install microsoft-openjdk17 `
     --version=17.0.18 `
     --params "'INSTALLDIR=C:\jdk-17'" `
-    --confirm --limit-output --timeout 216000 `
-    && rmdir /S /Q C:\chococache
+    %CHOCO_COMMON_ARGS% `
+    && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
     "$ProgressPreference = 'SilentlyContinue'; `
@@ -32,27 +35,27 @@ RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
 RUN choco install cmake.install `
     --version=3.21.6 `
     --installargs '"ADD_CMAKE_TO_PATH=System"' `
-    --confirm --limit-output --timeout 216000 `
-    && rmdir /S /Q C:\chococache
+    %CHOCO_COMMON_ARGS% `
+    && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN choco install ninja `
-    --confirm --limit-output --timeout 216000 `
-    && rmdir /S /Q C:\chococache
+    %CHOCO_COMMON_ARGS% `
+    && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN choco install git `
-    --confirm --limit-output --timeout 216000 `
-    && rmdir /S /Q C:\chococache
+    %CHOCO_COMMON_ARGS% `
+    && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN choco install python `
     --version=3.10.11 `
-    --confirm --limit-output --timeout 216000 `
-    && rmdir /S /Q C:\chococache
+    %CHOCO_COMMON_ARGS% `
+    && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_buildtools.exe `
     && if /I "%TARGETARCH%"=="arm64" ( `
         start /w "" C:\vs_buildtools.exe `
             --quiet --wait --norestart --nocache `
-            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
+            --installPath "%VS_BUILDTOOLS_PATH%" `
             --add Microsoft.VisualStudio.Workload.VCTools `
             --add Microsoft.VisualStudio.Component.VC.ATL `
             --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
@@ -66,7 +69,7 @@ RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_build
     ) else ( `
         start /w "" C:\vs_buildtools.exe `
             --quiet --wait --norestart --nocache `
-            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
+            --installPath "%VS_BUILDTOOLS_PATH%" `
             --add Microsoft.VisualStudio.Workload.VCTools `
             --add Microsoft.VisualStudio.Component.VC.ATL `
             --includeRecommended `
@@ -77,7 +80,7 @@ RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_build
         || IF "%ERRORLEVEL%"=="3010" EXIT 0 `
     ) `
     && del /F /Q C:\vs_buildtools.exe `
-    && if exist C:\chococache rmdir /S /Q C:\chococache
+    && if exist %CHOCO_CACHE_DIR% rmdir /S /Q %CHOCO_CACHE_DIR%
 
 WORKDIR C:/
 
