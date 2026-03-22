@@ -3,7 +3,7 @@
 if [ $# -lt 2 ] || [ $# -eq 3 ]; then
     echo "Usage: ./scripts/compile/compile_linux.sh <architecture> <buildType> [<gitrepo> <gitref>]"
     echo ""
-    echo "architecture: the target architecture to build for. Architectures are either arm64, arm/v6 or amd64."
+    echo "architecture: the target architecture to build for. Architectures are either arm64 or amd64."
     echo "buildType: either Release or Debug"
     echo "gitrepo: git repository url to clone"
     echo "gitref: the git commit id to pull"
@@ -18,11 +18,16 @@ ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 TARGETARCH=$1
 BUILD_TYPE=$2
 if [ $# -eq 2 ]; then
-    REPO=https://bitbucket.org/chromiumembedded/java-cef.git
+    REPO=https://github.com/trethore/jcef.git
     REF=master
 else
     REPO=$3
     REF=$4
+fi
+
+if [ "${TARGETARCH}" != "amd64" ] && [ "${TARGETARCH}" != "arm64" ]; then
+    echo "ERROR: Unsupported architecture '${TARGETARCH}'. Supported architectures are amd64 and arm64." >&2
+    exit 1
 fi
 
 cd "${ROOT_DIR}"
@@ -30,8 +35,6 @@ cd "${ROOT_DIR}"
 #Remove old build output
 rm -rf out
 mkdir out
-mkdir out/linux32
-touch out/linux32/prebuilt.txt
 
 #Remove binary distribution if there was one built before (saves transfer of it to docker context)
 rm -rf jcef/binary_distrib
@@ -39,11 +42,6 @@ rm -rf jcef/binary_distrib
 mkdir -p jcef
 
 #Execute buildx with linux dockerfile and output to current directory
-if [ "${TARGETARCH}" = "arm/v6" ]; then
-    rm -rf out/linux32
-    docker buildx build --no-cache --progress=plain --platform=linux/386 --build-arg TARGETARCH=386 --build-arg BUILD_TYPE="${BUILD_TYPE}" --build-arg REPO="${REPO}" --build-arg REF="${REF}" --file scripts/docker/DockerfileLinuxARMPrebuild --output out .
-fi
-
 docker buildx build --no-cache --progress=plain --platform=linux/"${TARGETARCH}" --build-arg TARGETARCH="${TARGETARCH}" --build-arg BUILD_TYPE="${BUILD_TYPE}" --build-arg REPO="${REPO}" --build-arg REF="${REF}" --file scripts/docker/DockerfileLinux --output out .
 docker builder prune -f --filter "label=jcefbuild=true"
 
@@ -53,7 +51,6 @@ if [ ! -f "out/binary_distrib.tar.gz" ]; then
 fi
 
 #Cleanup output dir
-rm -rf out/linux32
 rm -f out/third_party/cef/*.bz2 out/third_party/cef/*.sha1
 
 # Check if the cef download was performed. If so, move third_party dir to jcef dir

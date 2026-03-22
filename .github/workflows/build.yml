@@ -141,13 +141,13 @@ jobs:
         if: ${{ matrix.runner == 'macos' }}
         uses: actions/setup-java@v5
         with:
-          java-version: "8"
+          java-version: "17"
           distribution: "corretto"
       - name: Set up Python
         if: ${{ matrix.runner == 'macos' }}
         uses: actions/setup-python@v6
         with:
-          python-version: "3.10.11"
+          python-version: "3.10"
       - name: Install Apple certificate
         if: ${{ matrix.runner == 'macos' && inputs.sign_macosx }}
         env:

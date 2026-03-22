@@ -7,25 +7,18 @@ set "NATIVE_JAVA_HOME_DIR="
 set "TOOLS_JAVA_HOME_DIR="
 set "DISTRIB_DIR="
 
-if "%TARGETARCH%"=="386" (echo "Building 32-bit version") ^
-else (echo "Building 64-bit version")
+echo Building 64-bit version
 
-if "%TARGETARCH%"=="386" (
-    set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars32.bat"
-    set "NATIVE_JAVA_HOME_DIR=C:/Program Files (x86)/Java/jdk1.8.0_211"
-    set "TOOLS_JAVA_HOME_DIR=C:/Program Files (x86)/Java/jdk1.8.0_211"
-    set "DISTRIB_DIR=win32"
-)
 if "%TARGETARCH%"=="amd64" (
     set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-    set "NATIVE_JAVA_HOME_DIR=C:/Program Files/Java/jdk1.8.0_211"
-    set "TOOLS_JAVA_HOME_DIR=C:/Program Files/Java/jdk1.8.0_211"
+    set "NATIVE_JAVA_HOME_DIR=C:/jdk-17"
+    set "TOOLS_JAVA_HOME_DIR=C:/jdk-17"
     set "DISTRIB_DIR=win64"
 )
 if "%TARGETARCH%"=="arm64" (
     set "VCVARS_BAT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_arm64.bat"
-    set "NATIVE_JAVA_HOME_DIR=C:/jdk-11-arm64"
-    set "TOOLS_JAVA_HOME_DIR=C:/Program Files/Java/jdk1.8.0_211"
+    set "NATIVE_JAVA_HOME_DIR=C:/jdk-17-arm64"
+    set "TOOLS_JAVA_HOME_DIR=C:/jdk-17"
     set "DISTRIB_DIR=win64"
 )
 

@@ -5,10 +5,9 @@
 # Determine architecture
 echo "Building for architecture $TARGETARCH"
 
-# Point to jdk installation on arm/v6
-if [ ${TARGETARCH} == 'arm/v6' ]; then
-    export PATH=$PATH:/usr/lib/jvm/java-11-openjdk-armel/bin
-    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-armel
+if [ "${TARGETARCH}" != 'amd64' ] && [ "${TARGETARCH}" != 'arm64' ]; then
+    echo "ERROR: Unsupported TARGETARCH '${TARGETARCH}'"
+    exit 1
 fi
 
 # Print some debug info
@@ -58,16 +57,7 @@ ninja -j4
 #Compile JCEF java classes
 cd ../tools
 chmod +x compile.sh
-if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
-    ./compile.sh linux64
-elif [ ${TARGETARCH} == '386' ]; then
-    echo "386 is no longer supported since chromium 104"
-    exit 1
-else
-    echo "Can not compile java classes under arm/v6 currently. So we copy from prebuild directory."
-    mkdir -p /jcef/out/linux32
-    cp -r /prebuild/* /jcef/out/linux32/
-fi
+./compile.sh linux64
 
 #Entering distribution phase - disable error handling (javadoc building fails here nontheless)
 set -e
@@ -75,20 +65,11 @@ set -e
 #Generate distribution
 python3 /builder/patch_jcef_tools.py "$(pwd)"
 chmod +x make_distrib.sh
-if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
-    ./make_distrib.sh linux64
-else
-    ./make_distrib.sh linux32
-fi
+./make_distrib.sh linux64
 
 #Pack binary_distrib
-if [ ${TARGETARCH} == 'amd64' ] || [ ${TARGETARCH} == 'arm64' ]; then
-    cd ../binary_distrib/linux64
-    if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux64/libcef.so) fi
-else
-    cd ../binary_distrib/linux32
-    if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux32/libcef.so) fi
-fi
+cd ../binary_distrib/linux64
+if [ ${BUILD_TYPE} == 'Release' ]; then (echo "Stripping binary..." && strip bin/lib/linux64/libcef.so) fi
 
 #Export binaries
 tar -czvf ../../binary_distrib.tar.gz *

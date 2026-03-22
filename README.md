@@ -4,7 +4,7 @@
 
 Independent project to produce binary artifacts for the JCEF project.
 
-- JCEF source: [Bitbucket](https://bitbucket.org/chromiumembedded/java-cef/src/master/) or [GitHub](https://github.com/chromiumembedded/java-cef)
+- Default JCEF source fork: [trethore/jcef](https://github.com/trethore/jcef)
 - Maven/Gradle consumers: [jcefmaven](https://github.com/jcefmaven/jcefmaven)
 
 ## Supported platforms
@@ -22,7 +22,7 @@ Independent project to produce binary artifacts for the JCEF project.
 | --- | --- |
 | Linux | Docker build (see `scripts/docker/DockerfileLinux` for the toolchain and base image) |
 | Windows | Docker build with VS Build Tools 2022 inside a Windows container; both `windows-amd64` and `windows-arm64` run on `windows-2022`, with ARM64 built via the VS cross-compilation toolchain inside the container |
-| macOS | GitHub runner toolchain (Xcode + Ninja) plus `scripts/macos/install_macos_dependencies.sh`; Java: Corretto 8; Python: 3.10.11 |
+| macOS | GitHub runner toolchain (Xcode + Ninja) plus `scripts/macos/install_macos_dependencies.sh`; Java: Corretto 17; Python: 3.10 |
 
 ## Downloading artifacts
 
@@ -80,7 +80,7 @@ Notes:
 
 - Linux and Windows builds run inside Docker. Docker must be installed and running.
 - macOS builds require the dependencies listed in the JCEF build guide and `ninja`.
-- To match GitHub Actions on macOS, use Java 8 (Corretto) and Python 3.10.x.
+- To match GitHub Actions on macOS, use Java 17 (Corretto) and Python 3.10.x.
 
 ## Reporting bugs
 

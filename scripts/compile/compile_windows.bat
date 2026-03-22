@@ -5,7 +5,7 @@ setlocal
 if ("%2"=="") ( ^ 
     echo "Usage: scripts\compile\compile_windows.bat <architecture> <buildType> [<gitrepo> <gitref>]" && ^ 
     echo "" && ^ 
-    echo "architecture: the target architecture to build for. Architectures are either arm64, 386 or amd64." && ^ 
+    echo "architecture: the target architecture to build for. Architectures are either arm64 or amd64." && ^ 
     echo "buildType: either Release or Debug" && ^ 
     echo "gitrepo: git repository url to clone" && ^ 
     echo "gitref: the git commit id to pull" && ^ 
@@ -18,10 +18,15 @@ for %%I in ("%SCRIPT_DIR%..\..") do set "ROOT_DIR=%%~fI"
 cd /D "%ROOT_DIR%"
 
 ::Determine repository and ref to pull from
-if ("%3"=="") (set "REPO=https://bitbucket.org/chromiumembedded/java-cef.git") ^
+if ("%3"=="") (set "REPO=https://github.com/trethore/jcef.git") ^
 else (set "REPO=%3")
 if ("%4"=="") (set "REF=master") ^
 else (set "REF=%4")
+
+if /I not "%1"=="amd64" if /I not "%1"=="arm64" (
+    echo ERROR: Unsupported architecture "%1". Supported architectures are amd64 and arm64.
+    exit /b 1
+)
 
 call :ENSURE_DOCKER
 if errorlevel 1 exit /b %errorlevel%
