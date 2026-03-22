@@ -8,7 +8,7 @@ ARG TARGETARCH=amd64
 
 ENV chocolateyUseWindowsCompression=false
 ENV CHOCO_CACHE_DIR=C:\chococache
-ENV CHOCO_COMMON_ARGS=--confirm --limit-output --timeout 216000
+ENV CHOCO_TIMEOUT=216000
 ENV VS_BUILDTOOLS_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools
 
 RUN powershell -Command `
@@ -20,7 +20,7 @@ RUN choco config set cachelocation %CHOCO_CACHE_DIR%
 RUN choco install microsoft-openjdk17 `
     --version=17.0.18 `
     --params "'INSTALLDIR=C:\jdk-17'" `
-    %CHOCO_COMMON_ARGS% `
+    --confirm --limit-output --timeout=%CHOCO_TIMEOUT% `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
@@ -35,20 +35,20 @@ RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
 RUN choco install cmake.install `
     --version=3.21.6 `
     --installargs '"ADD_CMAKE_TO_PATH=System"' `
-    %CHOCO_COMMON_ARGS% `
+    --confirm --limit-output --timeout=%CHOCO_TIMEOUT% `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN choco install ninja `
-    %CHOCO_COMMON_ARGS% `
+    --confirm --limit-output --timeout=%CHOCO_TIMEOUT% `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN choco install git `
-    %CHOCO_COMMON_ARGS% `
+    --confirm --limit-output --timeout=%CHOCO_TIMEOUT% `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN choco install python `
     --version=3.10.11 `
-    %CHOCO_COMMON_ARGS% `
+    --confirm --limit-output --timeout=%CHOCO_TIMEOUT% `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_buildtools.exe `
