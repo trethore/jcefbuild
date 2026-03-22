@@ -74,37 +74,46 @@ goto :EOF
 
 :ENSURE_DOCKER
 echo Ensuring Docker daemon is available...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$serviceNames = @('docker', 'com.docker.service'); ^
-    $services = @(); ^
-    foreach ($name in $serviceNames) { ^
-        $svc = Get-Service -Name $name -ErrorAction SilentlyContinue; ^
-        if ($svc) { $services += $svc } ^
-    }; ^
-    foreach ($svc in $services) { ^
-        if ($svc.Status -ne 'Running') { ^
-            Write-Host ('Starting service ' + $svc.Name + '...'); ^
-            Start-Service -Name $svc.Name -ErrorAction SilentlyContinue ^
-        } ^
-    }; ^
-    $deadline = (Get-Date).AddMinutes(3); ^
-    while ((Get-Date) -lt $deadline) { ^
-        docker version *> $null; ^
-        if ($LASTEXITCODE -eq 0) { ^
-            Write-Host 'Docker daemon is ready.'; ^
-            exit 0 ^
-        }; ^
-        foreach ($svc in $services) { ^
-            try { ^
-                $svc.Refresh(); ^
-                if ($svc.Status -ne 'Running') { ^
-                    Start-Service -Name $svc.Name -ErrorAction SilentlyContinue ^
-                } ^
-            } catch { } ^
-        }; ^
-        Start-Sleep -Seconds 5 ^
-    }; ^
-    Write-Error 'Docker daemon did not become available in time.'; ^
-    docker version; ^
-    exit 1"
+set "POWERSHELL_CMD="
+call :APPEND_POWERSHELL "$serviceNames = @('docker', 'com.docker.service');"
+call :APPEND_POWERSHELL "$services = @();"
+call :APPEND_POWERSHELL "foreach ($name in $serviceNames) {"
+call :APPEND_POWERSHELL "    $svc = Get-Service -Name $name -ErrorAction SilentlyContinue;"
+call :APPEND_POWERSHELL "    if ($svc) { $services += $svc }"
+call :APPEND_POWERSHELL "}"
+call :APPEND_POWERSHELL "foreach ($svc in $services) {"
+call :APPEND_POWERSHELL "    if ($svc.Status -ne 'Running') {"
+call :APPEND_POWERSHELL "        Write-Host ('Starting service ' + $svc.Name + '...');"
+call :APPEND_POWERSHELL "        Start-Service -Name $svc.Name -ErrorAction SilentlyContinue"
+call :APPEND_POWERSHELL "    }"
+call :APPEND_POWERSHELL "}"
+call :APPEND_POWERSHELL "$deadline = (Get-Date).AddMinutes(3);"
+call :APPEND_POWERSHELL "while ((Get-Date) -lt $deadline) {"
+call :APPEND_POWERSHELL "    docker version *> $null;"
+call :APPEND_POWERSHELL "    if ($LASTEXITCODE -eq 0) {"
+call :APPEND_POWERSHELL "        Write-Host 'Docker daemon is ready.';"
+call :APPEND_POWERSHELL "        exit 0"
+call :APPEND_POWERSHELL "    }"
+call :APPEND_POWERSHELL "    foreach ($svc in $services) {"
+call :APPEND_POWERSHELL "        try {"
+call :APPEND_POWERSHELL "            $svc.Refresh();"
+call :APPEND_POWERSHELL "            if ($svc.Status -ne 'Running') {"
+call :APPEND_POWERSHELL "                Start-Service -Name $svc.Name -ErrorAction SilentlyContinue"
+call :APPEND_POWERSHELL "            }"
+call :APPEND_POWERSHELL "        } catch { }"
+call :APPEND_POWERSHELL "    }"
+call :APPEND_POWERSHELL "    Start-Sleep -Seconds 5"
+call :APPEND_POWERSHELL "}"
+call :APPEND_POWERSHELL "Write-Error 'Docker daemon did not become available in time.';"
+call :APPEND_POWERSHELL "docker version;"
+call :APPEND_POWERSHELL "exit 1"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "%POWERSHELL_CMD%"
 exit /b %errorlevel%
+
+:APPEND_POWERSHELL
+if defined POWERSHELL_CMD (
+    set "POWERSHELL_CMD=%POWERSHELL_CMD% %~1"
+) else (
+    set "POWERSHELL_CMD=%~1"
+)
+exit /b 0
