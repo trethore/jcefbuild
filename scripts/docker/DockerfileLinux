@@ -7,10 +7,11 @@ ARG TARGETARCH
 
 #Step 1: Install required tools and libs
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TOOLS="openjdk-11-jdk python3 python-is-python3 cmake git gcc build-essential libgtk2.0-dev ninja-build rsync curl libgbm-dev libxkbcommon-dev libpango1.0-dev libcairo-dev ca-certificates"
+ENV TOOLS="openjdk-11-jdk python3 python-is-python3 cmake-latest git gcc build-essential libgtk2.0-dev ninja-build rsync curl libgbm-dev libxkbcommon-dev libpango1.0-dev libcairo-dev ca-certificates"
 ENV LIBS="libnss3 libnspr4 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 libasound2 libatspi2.0-0 libxshmfence1"
 RUN apt-get -q update && \
     apt-get -q install -y --fix-missing -o Acquire::Retries=5 --no-install-recommends $TOOLS $LIBS && \
+    cmake --version && \
     if [ "$TARGETARCH" = "arm/v6" ]; then \
         apt-get -q install -y --fix-missing -o Acquire::Retries=5 --no-install-recommends libc6-armhf-cross && \
         ln -sf /usr/arm-linux-gnueabihf/lib/ld-linux-armhf.so.3 /usr/lib/ld-linux-armhf.so.3; \

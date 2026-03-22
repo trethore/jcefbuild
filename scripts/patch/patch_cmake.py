@@ -22,11 +22,7 @@ for x in f:
   elif x.startswith("# Add this project's cmake"):
     inpatch = False
   if inpatch == False:
-    #Patch minimum cmake version to not break our builds on linux
-    if x.startswith("cmake_minimum_required"):
-      result += "cmake_minimum_required(VERSION 3.13)\n"
-    else:
-      result += x
+    result += x
 
 f.close()
 p.close()

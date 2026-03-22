@@ -34,7 +34,7 @@ RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
     Remove-Item 'C:\jdk-11-arm64-tmp' -Recurse -Force"
 
 RUN choco install cmake.install `
-    --version=3.19 `
+    --version=3.21.6 `
     --installargs '"ADD_CMAKE_TO_PATH=System"' `
     --confirm --limit-output --timeout 216000 `
     && rmdir /S /Q C:\chococache

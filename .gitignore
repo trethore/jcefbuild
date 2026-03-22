@@ -1,5 +1,7 @@
 jcef/
 out
+__pycache__/
+*.py[cod]
 release_gen/*.txt
 release_gen/*.md
 release_gen/*.json
