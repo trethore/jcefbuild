@@ -25,6 +25,7 @@ set "OUT_DIR=out"
 set "JCEF_DIR=jcef"
 set "BINARY_DISTRIB_ARCHIVE=%OUT_DIR%\binary_distrib.tar.gz"
 set "ENSURE_DOCKER_SCRIPT=%ROOT_DIR%\scripts\windows\ensure_docker.ps1"
+set "DOCKER_DATA_ROOT=%JCEF_DOCKER_DATA_ROOT%"
 
 cd /D "%ROOT_DIR%"
 
@@ -75,5 +76,10 @@ goto :EOF
 
 :ENSURE_DOCKER
 echo Ensuring Docker daemon is available...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ENSURE_DOCKER_SCRIPT%"
+if defined DOCKER_DATA_ROOT (
+    echo Configuring Docker data-root: %DOCKER_DATA_ROOT%
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ENSURE_DOCKER_SCRIPT%" -DataRoot "%DOCKER_DATA_ROOT%"
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ENSURE_DOCKER_SCRIPT%"
+)
 exit /b %errorlevel%

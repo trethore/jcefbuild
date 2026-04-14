@@ -44,7 +44,7 @@ following inputs:
   - `false`: create a release and upload the binaries
     (plus `build_meta.json` and `LICENSE`)
 
-Note: `windows-arm64` still runs on `windows-2022`; the ARM64 target is produced by the existing Visual Studio cross-compilation setup in `scripts/run/run_windows.bat`.
+Note: `windows-arm64` still runs on `windows-2022`; the ARM64 target is produced by the existing Visual Studio cross-compilation setup in `scripts/run/run_windows.bat`. In GitHub Actions, the Windows ARM64 job moves Docker's `data-root` to `D:\docker-root` to avoid Windows container layer import failures caused by the default system drive filling up during the Visual Studio toolchain image build.
 
 ### macOS signing secrets
 
