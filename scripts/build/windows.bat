@@ -3,7 +3,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 if ("%2"=="") ( ^ 
-    echo "Usage: scripts\compile\compile_windows.bat <architecture> <buildType> [<gitrepo> <gitref>]" && ^ 
+    echo "Usage: scripts\build\windows.bat <architecture> <buildType> [<gitrepo> <gitref>]" && ^ 
     echo "" && ^ 
     echo "architecture: the target architecture to build for. Architectures are either arm64 or amd64." && ^ 
     echo "buildType: either Release or Debug" && ^ 
@@ -22,7 +22,7 @@ set "DOCKERFILE=scripts\docker\DockerfileWindows"
 set "DOCKER_IMAGE=jcefbuild"
 set "DOCKER_CONTAINER=jcefbuild"
 set "OUT_DIR=out"
-set "JCEF_DIR=jcef"
+set "JCEF_DIR=%ROOT_DIR%\jcef"
 set "BINARY_DISTRIB_ARCHIVE=%OUT_DIR%\binary_distrib.tar.gz"
 set "ENSURE_DOCKER_SCRIPT=%ROOT_DIR%\scripts\windows\ensure_docker.ps1"
 set "DOCKER_DATA_ROOT=%JCEF_DOCKER_DATA_ROOT%"
@@ -57,7 +57,7 @@ mkdir "%OUT_DIR%"
 docker rm -f "%DOCKER_CONTAINER%" >nul 2>&1
 docker run ^
     --name "%DOCKER_CONTAINER%" ^
-    -v jcef:"C:\jcef" ^
+    --mount "type=bind,source=%JCEF_DIR%,target=C:\jcef" ^
     -e TARGETARCH=%TARGETARCH% ^
     -e BUILD_TYPE=%BUILD_TYPE% ^
     -e REPO=%REPO% ^

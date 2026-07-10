@@ -32,15 +32,10 @@ certutil -generateSSTFromWU roots.sst ^
     && del roots.sst ^
     || exit /b !errorlevel!
 
-:: Check residency of workdir
+:: Prepare the requested checkout. C:\jcef is bind-mounted from the host so
+:: local sources and downloaded build dependencies are preserved.
 cd /D "%ROOT_DIR%" || exit /b !errorlevel!
-if exist "%JCEF_DIR%\README.md" (
-    echo Found existing files to build
-    cd /D "%JCEF_DIR%" || exit /b !errorlevel!
-) else (
-    echo Did not find files to build - cloning...
-    call :CLONE_REPOSITORY || exit /b !errorlevel!
-)
+call :ENSURE_CHECKOUT || exit /b !errorlevel!
 
 :: CMakeLists patching 
 python "%PATCH_SCRIPT%" CMakeLists.txt "%PATCH_FILE%" || exit /b !errorlevel!
@@ -109,9 +104,30 @@ exit /b 0
 
 
 
-:CLONE_REPOSITORY
-if exist "%JCEF_DIR%" rmdir /S /Q "%JCEF_DIR%"
-git clone %REPO% "%JCEF_DIR%" || exit /b !errorlevel!
+:ENSURE_CHECKOUT
+if exist "%JCEF_DIR%\.git" (
+    echo Updating existing JCEF checkout to %REPO% at %REF%...
+    cd /D "%JCEF_DIR%" || exit /b !errorlevel!
+    git remote get-url origin >nul 2>&1
+    if !errorlevel! equ 0 (
+        git remote set-url origin "%REPO%" || exit /b !errorlevel!
+    ) else (
+        git remote add origin "%REPO%" || exit /b !errorlevel!
+    )
+    git fetch --force --tags origin "%REF%" || exit /b !errorlevel!
+    git checkout --detach FETCH_HEAD || exit /b !errorlevel!
+    exit /b 0
+)
+
+for /F %%I in ('dir /B /A "%JCEF_DIR%" 2^>nul') do (
+    echo ERROR: %JCEF_DIR% is not empty and is not a Git checkout.
+    echo Move or remove it so the requested repository and ref can be checked out safely.
+    exit /b 1
+)
+
+echo Cloning JCEF from %REPO% at %REF%...
+git clone "%REPO%" "%JCEF_DIR%" || exit /b !errorlevel!
 cd /D "%JCEF_DIR%" || exit /b !errorlevel!
-git checkout %REF% || exit /b !errorlevel!
+git fetch --force --tags origin "%REF%" || exit /b !errorlevel!
+git checkout --detach FETCH_HEAD || exit /b !errorlevel!
 exit /b 0

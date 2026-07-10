@@ -11,6 +11,18 @@ def patch_cmake(input_path: Path, patch_path: Path) -> None:
     source_lines = input_path.read_text(encoding="utf-8").splitlines(keepends=True)
     patch_lines = patch_path.read_text(encoding="utf-8").splitlines(keepends=True)
 
+    start_indexes = [i for i, line in enumerate(source_lines) if line.startswith(START_MARKER)]
+    end_indexes = [i for i, line in enumerate(source_lines) if line.startswith(END_MARKER)]
+    if len(start_indexes) != 1 or len(end_indexes) != 1:
+        raise RuntimeError(
+            "Expected exactly one CMake platform block, found "
+            f"{len(start_indexes)} start marker(s) and {len(end_indexes)} end marker(s)"
+        )
+    if start_indexes[0] >= end_indexes[0]:
+        raise RuntimeError("CMake platform block markers are in the wrong order")
+    if not patch_lines or not patch_lines[0].startswith(START_MARKER):
+        raise RuntimeError(f"Patch must begin with: {START_MARKER}")
+
     result_lines: list[str] = []
     in_patch_block = False
     patch_inserted = False
@@ -29,7 +41,19 @@ def patch_cmake(input_path: Path, patch_path: Path) -> None:
         if not in_patch_block:
             result_lines.append(line)
 
-    input_path.write_text("".join(result_lines), encoding="utf-8")
+    if not patch_inserted or in_patch_block:
+        raise RuntimeError("Failed to replace the CMake platform block")
+
+    result = "".join(result_lines)
+    required_values = ("linuxarm64", "windowsarm64", "macosarm64")
+    missing_values = [value for value in required_values if value not in result]
+    if missing_values:
+        raise RuntimeError(
+            "Patched CMake configuration is missing required platforms: "
+            + ", ".join(missing_values)
+        )
+
+    input_path.write_text(result, encoding="utf-8")
     print("Done.")
 
 

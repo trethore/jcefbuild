@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -euo pipefail
+
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 
-. "${SCRIPT_DIR}/../scripts/common/retry.sh"
+. "${SCRIPT_DIR}/../lib/retry.sh"
 
 if [ ! $# -eq 5 ]
   then
@@ -20,9 +22,11 @@ fi
 rm -f *.txt
 
 #Pull from git
+rm -rf jcef
 retry_git_clone "$1" jcef
+retry_command git -C jcef fetch --force --tags origin "$2"
+git -C jcef checkout --detach FETCH_HEAD
 cd jcef
-git checkout $2
 
 #Dump git commit id and suspected url
 commit_id=$(git rev-parse HEAD | cut -c -7) #Use short 7-digit commit id
@@ -42,9 +46,8 @@ cef_version=$(grep -o -P '(?<=CEF_VERSION \").*(?=\")' < CMakeLists.txt)
 
 #Build final release information
 #Tag
-release_tag=$(echo "1.0.$4" | awk '{print}' ORS='')
-real_release_tag=$(echo "jcef-$commit_id+cef-$cef_version" | awk '{print}' ORS='')
-echo "$release_tag" > ../release_tag.txt #Export for build_meta announcer
+release_tag="1.0.$4"
+real_release_tag="jcef-$commit_id+cef-$cef_version"
 
 echo "release_tag_name=$release_tag" >> $GITHUB_ENV
 

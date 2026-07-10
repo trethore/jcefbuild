@@ -2,8 +2,8 @@ jcef/
 out
 __pycache__/
 *.py[cod]
-release_gen/*.txt
-release_gen/*.md
-release_gen/*.json
-release_gen/LICENSE
+scripts/release/*.txt
+scripts/release/*.md
+scripts/release/*.json
+scripts/release/LICENSE
 .ignore

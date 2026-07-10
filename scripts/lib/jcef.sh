@@ -26,14 +26,29 @@ ensure_checkout() {
     local repo=$2
     local ref=$3
 
-    if [ ! -f "${checkout_dir}/README.md" ]; then
-        echo "Did not find existing files to build - cloning..."
-        rm -rf "${checkout_dir}"
-        retry_git_clone "${repo}" "${checkout_dir}"
-        git -C "${checkout_dir}" checkout "${ref}"
-    else
-        echo "Found existing files to build"
+    if [ -d "${checkout_dir}/.git" ]; then
+        echo "Updating existing JCEF checkout to ${repo} at ${ref}..."
+        if git -C "${checkout_dir}" remote get-url origin > /dev/null 2>&1; then
+            git -C "${checkout_dir}" remote set-url origin "${repo}"
+        else
+            git -C "${checkout_dir}" remote add origin "${repo}"
+        fi
+        retry_command git -C "${checkout_dir}" fetch --force --tags origin "${ref}"
+        git -C "${checkout_dir}" checkout --detach FETCH_HEAD
+        return
     fi
+
+    if directory_has_entries "${checkout_dir}"; then
+        echo "ERROR: ${checkout_dir} is not empty and is not a Git checkout." >&2
+        echo "Move or remove it so the requested repository and ref can be checked out safely." >&2
+        return 1
+    fi
+
+    echo "Cloning JCEF from ${repo} at ${ref}..."
+    rm -rf "${checkout_dir}"
+    retry_git_clone "${repo}" "${checkout_dir}"
+    retry_command git -C "${checkout_dir}" fetch --force --tags origin "${ref}"
+    git -C "${checkout_dir}" checkout --detach FETCH_HEAD
 }
 
 ensure_directory() {

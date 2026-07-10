@@ -50,6 +50,14 @@ def patch_make_readme(path: Path) -> list[str]:
 
     if patched != content:
         path.write_text(patched, encoding="utf-8")
+
+    if re.search(r"data\.encode\(\s*['\"]utf-8['\"]\s*\)", patched):
+        raise RuntimeError("Failed to patch Python 3 README output handling")
+    if re.search(
+        r"read_readme_file\([^\n]*jcef_build[^\n]*README\.txt[^\n]*\)", patched
+    ):
+        raise RuntimeError("Failed to patch CEF README discovery")
+
     return changes
 
 

@@ -6,7 +6,7 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 ROOT_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
 PYTHON_BIN=python3
 
-. "${ROOT_DIR}/scripts/common/retry.sh"
+. "${ROOT_DIR}/scripts/lib/retry.sh"
 
 retry_command brew install ninja
 retry_command pip3 install \

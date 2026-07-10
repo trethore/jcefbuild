@@ -2,53 +2,76 @@
 
 ![build](../../actions/workflows/build.yml/badge.svg)
 
-Independent project to produce binary artifacts for the JCEF project.
-
-- Default JCEF source fork: [trethore/jcef](https://github.com/trethore/jcef)
-- Maven/Gradle consumers: [jcefmaven](https://github.com/jcefmaven/jcefmaven)
+[JCEF](https://github.com/trethore/jcef) provides Java bindings for the
+Chromium Embedded Framework (CEF). This repository contains the scripts and
+GitHub Actions workflow used to build JCEF binary distributions.
 
 ## Supported platforms
 
-- linux-amd64
-- linux-arm64
-- macosx-amd64
-- macosx-arm64
-- windows-amd64
-- windows-arm64
+| Operating system | AMD64 | ARM64 |
+| --- | :---: | :---: |
+| Linux | `linux-amd64` | `linux-arm64` |
+| macOS | `macosx-amd64` | `macosx-arm64` |
+| Windows | `windows-amd64` | `windows-arm64` |
 
-## Build environment (GitHub Actions)
+## GitHub Actions environments
 
-| Platform | Build environment |
+| Platform | Environment |
 | --- | --- |
-| Linux | Docker build (see `scripts/docker/DockerfileLinux` for the toolchain and base image) |
-| Windows | Docker build with VS Build Tools 2022 inside a Windows container; both `windows-amd64` and `windows-arm64` run on `windows-2022`, with ARM64 built via the VS cross-compilation toolchain inside the container |
-| macOS | GitHub runner toolchain (Xcode + Ninja) plus `scripts/macos/install_macos_dependencies.sh`; Java: Corretto 17; Python: 3.10 |
+| Linux | Docker Buildx on Ubuntu; ARM64 builds use QEMU |
+| macOS | GitHub macOS runner with Xcode, Ninja, Java 17 and Python 3.10 |
+| Windows | Windows Server 2022 container with Visual Studio Build Tools 2022; ARM64 uses cross-compilation |
 
 ## Downloading artifacts
 
-You can find the most recent versions of the artifacts on the
-[releases](../../releases) page of this repository.
+Published builds are available on the [releases](../../releases) page.
 
-## Building via GitHub Actions
+Each release contains one archive per supported platform, Javadoc,
+`build_meta.json`, and the JCEF license.
 
-The `build` workflow is manual-only (`workflow_dispatch`) and supports the
-following inputs:
+## Building using GitHub Actions
 
-- `jcef_repo` (default: `https://github.com/trethore/jcef`)
-- `jcef_ref` (default: `master`)
-- `platform` (default: `all`)
-  - `all`, `linux-amd64`, `linux-arm64`, `macosx-amd64`, `macosx-arm64`, `windows-amd64`, `windows-arm64`
-- `sign_macosx` (default: `false`)
-- `dry_run` (default: `true`)
-  - `true`: build + upload action artifacts only
-  - `false`: create a release and upload the binaries
-    (plus `build_meta.json` and `LICENSE`)
+Open **Actions -> build -> Run workflow**, then configure:
 
-Note: `windows-arm64` still runs on `windows-2022`; the ARM64 target is produced by the existing Visual Studio cross-compilation setup in `scripts/run/run_windows.bat`. In GitHub Actions, the Windows ARM64 job moves Docker's `data-root` to `D:\docker-root` to avoid Windows container layer import failures caused by the default system drive filling up during the Visual Studio toolchain image build.
+| Input | Description |
+| --- | --- |
+| `jcef_repo` | JCEF repository to build |
+| `jcef_ref` | Branch, tag, or commit to build |
+| `platform` | A single platform or `all` |
+| `sign_macosx` | Sign and notarize the macOS artifacts |
+| `dry_run` | Upload workflow artifacts without publishing a release |
 
-### macOS signing secrets
+Use `dry_run=true` while testing changes. Partial platform builds are only
+available in dry-run mode. Publishing a release requires `platform=all`; the
+release becomes public only after every expected artifact has been built and
+uploaded.
 
-If `sign_macosx` is enabled, you must set these repository secrets:
+## Building locally
+
+The `jcef/` directory is used as a persistent Git checkout. Leave it empty to
+clone the requested repository, or place an existing Git checkout there. A
+non-empty directory without `.git` is rejected.
+
+```text
+# Linux
+./scripts/build/linux.sh <amd64|arm64> <Release|Debug> [<repository> <ref>]
+
+# macOS
+./scripts/build/macos.sh <amd64|arm64> <Release|Debug> [<repository> <ref>]
+
+# Windows
+scripts\build\windows.bat <amd64|arm64> <Release|Debug> [<repository> <ref>]
+```
+
+Linux and Windows require Docker. macOS requires Xcode, CMake, Ninja, Java 17,
+Python 3.10, and the dependencies installed by `scripts/setup/macos.sh`.
+
+Build results are written to `out/`.
+
+## Sign macOS artifacts
+
+Unsigned macOS builds are the default. To sign and notarize them in GitHub
+Actions, enable `sign_macosx` and configure these repository secrets:
 
 - `APPLE_API_KEY_BASE64`
 - `APPLE_API_KEY_ISSUER`
@@ -58,41 +81,28 @@ If `sign_macosx` is enabled, you must set these repository secrets:
 - `APPLE_BUILD_CERTIFICATE_NAME`
 - `APPLE_P12_PASSWORD`
 - `APPLE_KEYCHAIN_PASSWORD`
-- `APPLE_TEAM_NAME`
 
-You can obtain:
+Use a **Developer ID Application** certificate and an App Store Connect API
+key. The workflow signs the application bundle, submits it to Apple's notary
+service, and publishes the artifacts only if notarization succeeds.
 
-- the API key from [App Store Connect](https://appstoreconnect.apple.com/access/api)
-- the certificate from
-  [Apple Developer Certificates](https://developer.apple.com/account/resources/certificates/list)
-  (use _Developer ID Application_)
+## Support and issue routing
 
-## Building locally
-
-Put your sources in the `jcef/` directory (or leave it empty to clone a repository),
-then run:
-
-- Linux: `./scripts/compile/compile_linux.sh <arch> <buildType> [<gitrepo> <gitref>]`
-- Windows: `scripts\compile\compile_windows.bat <arch> <buildType> [<gitrepo> <gitref>]`
-- macOS: `./scripts/compile/compile_macosx.sh <arch> <buildType> [<gitrepo> <gitref>]`
-
-Notes:
-
-- Linux and Windows builds run inside Docker. Docker must be installed and running.
-- macOS builds require the dependencies listed in the JCEF build guide and `ninja`.
-- To match GitHub Actions on macOS, use Java 17 (Corretto) and Python 3.10.x.
-
-## Reporting bugs
-
-Please report build issues here.
-For JCEF/CEF issues, use the
-[ChromiumEmbedded Bitbucket tracker](https://bitbucket.org/chromiumembedded/).
+- Build scripts, workflow, or packaging problems -> report them in this repository.
+- JCEF Java or native integration problems -> report them to [trethore/jcef](https://github.com/trethore/jcef).
+- CEF or Chromium problems -> use the [Chromium Embedded Framework tracker](https://bitbucket.org/chromiumembedded/).
 
 ## Contributing
 
 Pull requests are welcome.
 Please include a successful GitHub Actions run with your changes.
 
----
+## License
 
-Credit: https://github.com/jcefmaven/jcefbuild
+This project is available under the [Apache License 2.0](LICENSE).
+Generated distributions also contain the license provided by JCEF.
+
+## Credits
+
+Based on the original [jcefmaven/jcefbuild](https://github.com/jcefmaven/jcefbuild)
+project, with thanks to the JCEF and CEF contributors.

@@ -1,7 +1,5 @@
 FROM debian:bullseye AS stage
 
-LABEL jcefbuild=true
-
 #Declare architecture argument (arm64 or amd64)
 ARG TARGETARCH
 
@@ -26,14 +24,14 @@ WORKDIR /builder
 COPY jcef /jcef
 
 #Copy cmake patching script
-COPY scripts/common/retry.sh .
-COPY scripts/common/jcef.sh .
-COPY scripts/patch/patch_cmake.py .
-COPY scripts/patch/patch_jcef_tools.py .
-COPY patch/CMakeLists.txt.patch .
+COPY scripts/lib/retry.sh .
+COPY scripts/lib/jcef.sh .
+COPY scripts/patches/patch_cmake.py .
+COPY scripts/patches/patch_jcef_tools.py .
+COPY scripts/patches/CMakeLists.txt.patch .
 
 #Copy and launch run script
-COPY scripts/run/run_linux.sh .
+COPY scripts/docker/run_linux.sh .
 RUN chmod +x run_linux.sh
 RUN ./run_linux.sh
 

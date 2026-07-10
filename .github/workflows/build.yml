@@ -34,6 +34,15 @@ on:
         default: true
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate patch tooling
+        run: |
+          python3 -m py_compile scripts/patches/*.py
+          python3 -m unittest discover -s tests -v
+
   set-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -41,6 +50,11 @@ jobs:
     steps:
       - id: set
         run: |
+          if [ "${{ inputs.dry_run }}" != "true" ] && [ "${{ inputs.platform }}" != "all" ]; then
+            echo "Published releases require platform=all. Use dry_run=true for partial builds." >&2
+            exit 1
+          fi
+
           case "${{ inputs.platform }}" in
             all)
               matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz","docker_data_root":"D:\\docker-root"}]}'
@@ -70,53 +84,10 @@ jobs:
           esac
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
-  create-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      release_tag_name: ${{ env.release_tag_name }}
-    steps:
-      - name: Checkout
-        if: ${{ !inputs.dry_run }}
-        uses: actions/checkout@v6
-      - name: Generate release info
-        if: ${{ !inputs.dry_run }}
-        run: |
-          cd release_gen
-          chmod +x create_release_info.sh
-          ./create_release_info.sh ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }} https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} ${{ github.run_number }} ${{ github.repository }}
-      - name: Create Release
-        if: ${{ !inputs.dry_run }}
-        run: |
-          gh release create ${{ env.release_tag_name }} --title "${{ env.release_name }}" --notes-file release_gen/release_message.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Add LICENSE
-        if: ${{ !inputs.dry_run }}
-        run: |
-          gh release upload ${{ env.release_tag_name }} release_gen/LICENSE
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Add build_meta.json
-        if: ${{ !inputs.dry_run }}
-        run: |
-          gh release upload ${{ env.release_tag_name }} release_gen/build_meta.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Announce build_meta.json download url to other jobs
-        if: ${{ !inputs.dry_run }}
-        run: |
-          cd release_gen
-          chmod +x announce_build_meta.sh
-          ./announce_build_meta.sh ${{ github.repository }}
-
   build:
     name: build-${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: [set-matrix, create-release]
-    permissions:
-      contents: write
+    needs: [set-matrix, validate]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.set-matrix.outputs.matrix) }}
@@ -135,8 +106,8 @@ jobs:
       - name: Setup environment
         if: ${{ matrix.runner == 'macos' }}
         run: |
-          chmod +x scripts/macos/install_macos_dependencies.sh
-          ./scripts/macos/install_macos_dependencies.sh
+          chmod +x scripts/setup/macos.sh
+          ./scripts/setup/macos.sh
       - name: Set up Java
         if: ${{ matrix.runner == 'macos' }}
         uses: actions/setup-java@v5
@@ -171,19 +142,21 @@ jobs:
 
       - name: Build (linux)
         if: ${{ matrix.runner == 'linux' }}
+        env:
+          JCEF_BUILD_CACHE: gha
         run: |
-          chmod +x scripts/compile/compile_linux.sh
-          ./scripts/compile/compile_linux.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          chmod +x scripts/build/linux.sh
+          ./scripts/build/linux.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
       - name: Build (macos signed)
         if: ${{ matrix.runner == 'macos' && inputs.sign_macosx }}
         run: |
-          chmod +x scripts/compile/compile_macosx.sh
-          ./scripts/compile/compile_macosx.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }} "${{ secrets.APPLE_BUILD_CERTIFICATE_NAME }}" ${{ secrets.APPLE_TEAM_NAME }} ${{ secrets.APPLE_API_KEY_ID }} "${HOME}/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_NAME }}.p8" ${{ secrets.APPLE_API_KEY_ISSUER }}
+          chmod +x scripts/build/macos.sh
+          ./scripts/build/macos.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }} "${{ secrets.APPLE_BUILD_CERTIFICATE_NAME }}" ${{ secrets.APPLE_API_KEY_ID }} "${HOME}/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_NAME }}.p8" ${{ secrets.APPLE_API_KEY_ISSUER }}
       - name: Build (macos unsigned)
         if: ${{ matrix.runner == 'macos' && !inputs.sign_macosx }}
         run: |
-          chmod +x scripts/compile/compile_macosx.sh
-          ./scripts/compile/compile_macosx.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          chmod +x scripts/build/macos.sh
+          ./scripts/build/macos.sh ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
       - name: Clean up keychain
         if: ${{ matrix.runner == 'macos' && inputs.sign_macosx && always() }}
         run: |
@@ -195,33 +168,93 @@ jobs:
         env:
           JCEF_DOCKER_DATA_ROOT: ${{ matrix.docker_data_root }}
         run: |
-          scripts\compile\compile_windows.bat ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          scripts\build\windows.bat ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
 
-      - name: Upload artifact
-        if: ${{ inputs.dry_run }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.artifact }}
-          path: out/binary_distrib.tar.gz
-
-      - name: Export distribution (unix)
-        if: ${{ !inputs.dry_run && matrix.runner != 'windows' }}
+      - name: Prepare artifact (unix)
+        if: ${{ matrix.runner != 'windows' }}
         run: |
-          mv out/binary_distrib.tar.gz out/${{ matrix.artifact }}
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/${{ matrix.artifact }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Export distribution (windows)
-        if: ${{ !inputs.dry_run && matrix.runner == 'windows' }}
+          mkdir -p out/release-assets
+          cp out/binary_distrib.tar.gz out/release-assets/${{ matrix.artifact }}
+          if [ "${{ matrix.platform }}" = "macosx-amd64" ] && [ -f out/javadoc.tar.gz ]; then
+            cp out/javadoc.tar.gz out/release-assets/javadoc.tar.gz
+          fi
+      - name: Prepare artifact (windows)
+        if: ${{ matrix.runner == 'windows' }}
         shell: cmd
         run: |
-          move out\binary_distrib.tar.gz out\${{ matrix.artifact }}
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out\${{ matrix.artifact }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Export javadoc
-        if: ${{ !inputs.dry_run && matrix.platform == 'macosx-amd64' }}
+          mkdir out\release-assets
+          copy out\binary_distrib.tar.gz out\release-assets\${{ matrix.artifact }}
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ matrix.platform }}
+          path: out/release-assets
+
+  publish-release:
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Validate release assets
         run: |
-          gh release upload ${{ needs.create-release.outputs.release_tag_name }} out/javadoc.tar.gz
+          expected=(
+            linux-amd64.tar.gz
+            linux-arm64.tar.gz
+            macosx-amd64.tar.gz
+            macosx-arm64.tar.gz
+            windows-amd64.tar.gz
+            windows-arm64.tar.gz
+            javadoc.tar.gz
+          )
+          for artifact in "${expected[@]}"; do
+            if [ ! -s "release-assets/${artifact}" ]; then
+              echo "Missing or empty release artifact: ${artifact}" >&2
+              exit 1
+            fi
+          done
+      - name: Generate release info
+        env:
+          JCEF_REPO: ${{ inputs.jcef_repo }}
+          JCEF_REF: ${{ inputs.jcef_ref }}
+          ACTIONS_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTIONS_RUN_NUMBER: ${{ github.run_number }}
+          RELEASE_REPO: ${{ github.repository }}
+        run: |
+          cd scripts/release
+          chmod +x create_release_info.sh
+          ./create_release_info.sh "$JCEF_REPO" "$JCEF_REF" "$ACTIONS_URL" "$ACTIONS_RUN_NUMBER" "$RELEASE_REPO"
+      - name: Create draft release and upload assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ env.release_tag_name }}" \
+            --draft \
+            --title "${{ env.release_name }}" \
+            --notes-file scripts/release/release_message.md
+          touch release-created
+          gh release upload "${{ env.release_tag_name }}" \
+            release-assets/* \
+            scripts/release/LICENSE \
+            scripts/release/build_meta.json
+      - name: Publish completed release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ env.release_tag_name }}" --draft=false
+      - name: Remove incomplete draft on failure
+        if: ${{ failure() && env.release_tag_name != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f release-created ]; then
+            gh release delete "${{ env.release_tag_name }}" --yes --cleanup-tag || true
+          fi
