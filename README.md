@@ -6,6 +6,10 @@
 Chromium Embedded Framework (CEF). This repository contains the scripts and
 GitHub Actions workflow used to build JCEF binary distributions.
 
+For upstream implementation details, see the JCEF documentation for the
+[build architecture](https://github.com/trethore/jcef/blob/master/docs/explanation/build-architecture.md)
+and [release pipeline](https://github.com/trethore/jcef/blob/master/docs/reference/release-pipeline.md).
+
 ## Supported platforms
 
 | Operating system | AMD64 | ARM64 |
@@ -68,6 +72,11 @@ Python 3.10, and the dependencies installed by `scripts/setup/macos.sh`.
 
 Build results are written to `out/`.
 
+The compatibility tools under `scripts/patches/` extend the upstream JCEF
+build configuration for the supported ARM64 targets and handle small tooling
+differences needed by this build pipeline. Their behavior is covered by the
+tests under `tests/`.
+
 ## Sign macOS artifacts
 
 Unsigned macOS builds are the default. To sign and notarize them in GitHub
@@ -90,6 +99,7 @@ service, and publishes the artifacts only if notarization succeeds.
 
 - Build scripts, workflow, or packaging problems -> report them in this repository.
 - JCEF Java or native integration problems -> report them to [trethore/jcef](https://github.com/trethore/jcef).
+- Maven artifacts, dependency integration, or runtime artifact downloads -> report them to [trethore/jcefgithub](https://github.com/trethore/jcefgithub).
 - CEF or Chromium problems -> use the [Chromium Embedded Framework tracker](https://bitbucket.org/chromiumembedded/).
 
 ## Contributing
