@@ -4,6 +4,8 @@ FROM mcr.microsoft.com/dotnet/framework/runtime:4.8.1-20221213-windowsservercore
 
 SHELL ["cmd", "/S", "/C"]
 
+ARG TARGETARCH=amd64
+
 ENV chocolateyUseWindowsCompression=false
 ENV CHOCO_CACHE_DIR=C:\chococache
 ENV CHOCO_TIMEOUT=216000
@@ -20,7 +22,7 @@ RUN choco install microsoft-openjdk17 `
     --confirm --limit-output --timeout=%CHOCO_TIMEOUT% `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
-RUN powershell -Command `
+RUN if /I "%TARGETARCH%"=="arm64" powershell -Command `
     "$ProgressPreference = 'SilentlyContinue'; `
     Invoke-WebRequest -Uri 'https://aka.ms/download-jdk/microsoft-jdk-17.0.18-windows-aarch64.zip' -OutFile 'C:\microsoft-jdk-17-windows-aarch64.zip'; `
     Expand-Archive -Path 'C:\microsoft-jdk-17-windows-aarch64.zip' -DestinationPath 'C:\jdk-17-arm64-tmp'; `
@@ -49,19 +51,33 @@ RUN choco install python `
     && rmdir /S /Q %CHOCO_CACHE_DIR%
 
 RUN curl -SL --output C:\vs_buildtools.exe https://aka.ms/vs/17/release/vs_buildtools.exe `
-    && start /w "" C:\vs_buildtools.exe `
-        --quiet --wait --norestart --nocache `
-        --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
-        --add Microsoft.VisualStudio.Workload.VCTools `
-        --add Microsoft.VisualStudio.Component.VC.ATL `
-        --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
-        --add Microsoft.VisualStudio.Component.VC.ATL.ARM64 `
-        --includeRecommended `
-        --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
-        --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
-        --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
-        --remove Microsoft.VisualStudio.Component.Windows81SDK `
-    || IF "%ERRORLEVEL%"=="3010" EXIT 0 `
+    && if /I "%TARGETARCH%"=="arm64" ( `
+        start /w "" C:\vs_buildtools.exe `
+            --quiet --wait --norestart --nocache `
+            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
+            --add Microsoft.VisualStudio.Workload.VCTools `
+            --add Microsoft.VisualStudio.Component.VC.ATL `
+            --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
+            --add Microsoft.VisualStudio.Component.VC.ATL.ARM64 `
+            --includeRecommended `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
+            --remove Microsoft.VisualStudio.Component.Windows81SDK `
+        || IF "%ERRORLEVEL%"=="3010" EXIT 0 `
+    ) else ( `
+        start /w "" C:\vs_buildtools.exe `
+            --quiet --wait --norestart --nocache `
+            --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools" `
+            --add Microsoft.VisualStudio.Workload.VCTools `
+            --add Microsoft.VisualStudio.Component.VC.ATL `
+            --includeRecommended `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
+            --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
+            --remove Microsoft.VisualStudio.Component.Windows81SDK `
+        || IF "%ERRORLEVEL%"=="3010" EXIT 0 `
+    ) `
     && del /F /Q C:\vs_buildtools.exe `
     && if exist %CHOCO_CACHE_DIR% rmdir /S /Q %CHOCO_CACHE_DIR%
 

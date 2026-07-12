@@ -23,9 +23,6 @@ set "DOCKER_IMAGE=jcefbuild"
 set "DOCKER_CONTAINER=jcefbuild"
 set "OUT_DIR=out"
 set "JCEF_DIR=%ROOT_DIR%\jcef"
-if defined JCEF_DOCKER_CONTAINER set "DOCKER_CONTAINER=%JCEF_DOCKER_CONTAINER%"
-if defined JCEF_OUTPUT_DIR set "OUT_DIR=%JCEF_OUTPUT_DIR%"
-if defined JCEF_WORK_DIR set "JCEF_DIR=%JCEF_WORK_DIR%"
 set "BINARY_DISTRIB_ARCHIVE=%OUT_DIR%\binary_distrib.tar.gz"
 set "ENSURE_DOCKER_SCRIPT=%ROOT_DIR%\scripts\windows\ensure_docker.ps1"
 set "DOCKER_DATA_ROOT=%JCEF_DOCKER_DATA_ROOT%"
@@ -44,19 +41,18 @@ if /I not "%TARGETARCH%"=="amd64" if /I not "%TARGETARCH%"=="arm64" (
 call :ENSURE_DOCKER
 if errorlevel 1 exit /b %errorlevel%
 
-:: Build the shared Windows toolchain image unless the caller already built it.
-if not defined JCEF_SKIP_DOCKER_BUILD (
-    docker build ^
-        -m 4GB ^
-        -t "%DOCKER_IMAGE%" ^
-        --file "%DOCKERFILE%" ^
-        .
-    if errorlevel 1 exit /b %errorlevel%
-)
+:: Execute build with windows Dockerfile
+docker build ^
+    -m 4GB ^
+    -t "%DOCKER_IMAGE%" ^
+    --build-arg TARGETARCH=%TARGETARCH% ^
+    --file "%DOCKERFILE%" ^
+    .
+if errorlevel 1 exit /b %errorlevel%
 
 :: Execute run with windows Dockerfile
 if not exist "%JCEF_DIR%" mkdir "%JCEF_DIR%"
-rmdir /S /Q "%OUT_DIR%" 2>nul
+rmdir /S /Q out 2>nul
 mkdir "%OUT_DIR%"
 docker rm -f "%DOCKER_CONTAINER%" >nul 2>&1
 docker run ^
