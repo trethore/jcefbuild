@@ -22,7 +22,7 @@ and [release pipeline](https://github.com/trethore/jcef/blob/master/docs/referen
 
 | Platform | Environment |
 | --- | --- |
-| Linux | Docker Buildx on Ubuntu; ARM64 builds use QEMU |
+| Linux | Docker Buildx on native AMD64 and ARM64 Ubuntu runners |
 | macOS | GitHub macOS runner with Xcode, Ninja, Java 17 and Python 3.10 |
 | Windows | Windows Server 2022 container with Visual Studio Build Tools 2022; ARM64 uses cross-compilation |
 

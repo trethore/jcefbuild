@@ -61,8 +61,8 @@ cmake \
     -DPROJECT_ARCH="${TARGETARCH}" \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
     ..
-# Build native part using ninja.
-ninja -j4
+# Build native part using all CPUs available to the container.
+ninja -j"$(nproc)"
 
 #Compile JCEF java classes
 cd "${TOOLS_DIR}"

@@ -57,13 +57,13 @@ jobs:
 
           case "${{ inputs.platform }}" in
             all)
-              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz","docker_data_root":"D:\\docker-root"}]}'
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-24.04-arm","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz","docker_data_root":"D:\\docker-root"}]}'
               ;;
             linux-amd64)
               matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}'
               ;;
             linux-arm64)
-              matrix='{"include":[{"platform":"linux-arm64","os":"ubuntu-latest","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"}]}'
+              matrix='{"include":[{"platform":"linux-arm64","os":"ubuntu-24.04-arm","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"}]}'
               ;;
             macosx-amd64)
               matrix='{"include":[{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"}]}'
@@ -94,11 +94,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up QEMU
-        if: ${{ matrix.runner == 'linux' }}
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: all
       - name: Set up Docker Buildx
         if: ${{ matrix.runner == 'linux' }}
         uses: docker/setup-buildx-action@v4
