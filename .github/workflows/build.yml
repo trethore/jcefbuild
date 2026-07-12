@@ -57,7 +57,7 @@ jobs:
 
           case "${{ inputs.platform }}" in
             all)
-              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-24.04-arm","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows-amd64","os":"windows-2022","runner":"windows","arch":"amd64","artifact":"windows-amd64.tar.gz"},{"platform":"windows-arm64","os":"windows-2022","runner":"windows","arch":"arm64","artifact":"windows-arm64.tar.gz","docker_data_root":"D:\\docker-root"}]}'
+              matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"},{"platform":"linux-arm64","os":"ubuntu-24.04-arm","runner":"linux","arch":"arm64","artifact":"linux-arm64.tar.gz"},{"platform":"macosx-amd64","os":"macos-latest","runner":"macos","arch":"amd64","java_arch":"x64","artifact":"macosx-amd64.tar.gz"},{"platform":"macosx-arm64","os":"macos-latest","runner":"macos","arch":"arm64","java_arch":"aarch64","artifact":"macosx-arm64.tar.gz"},{"platform":"windows","os":"windows-2022","runner":"windows","arch":"all","docker_data_root":"D:\\docker-root"}]}'
               ;;
             linux-amd64)
               matrix='{"include":[{"platform":"linux-amd64","os":"ubuntu-latest","runner":"linux","arch":"amd64","artifact":"linux-amd64.tar.gz"}]}'
@@ -163,7 +163,11 @@ jobs:
         env:
           JCEF_DOCKER_DATA_ROOT: ${{ matrix.docker_data_root }}
         run: |
-          scripts\build\windows.bat ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          if "${{ matrix.arch }}"=="all" (
+            scripts\build\windows_all.bat Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          ) else (
+            scripts\build\windows.bat ${{ matrix.arch }} Release ${{ inputs.jcef_repo }} ${{ inputs.jcef_ref }}
+          )
 
       - name: Prepare artifact (unix)
         if: ${{ matrix.runner != 'windows' }}
@@ -178,7 +182,12 @@ jobs:
         shell: cmd
         run: |
           mkdir out\release-assets
-          copy out\binary_distrib.tar.gz out\release-assets\${{ matrix.artifact }}
+          if "${{ matrix.arch }}"=="all" (
+            copy out\windows-amd64\binary_distrib.tar.gz out\release-assets\windows-amd64.tar.gz
+            copy out\windows-arm64\binary_distrib.tar.gz out\release-assets\windows-arm64.tar.gz
+          ) else (
+            copy out\binary_distrib.tar.gz out\release-assets\${{ matrix.artifact }}
+          )
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6
         with:
